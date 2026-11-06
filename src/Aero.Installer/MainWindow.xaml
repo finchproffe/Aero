@@ -1,0 +1,184 @@
+<Window
+    x:Class="Aero.Installer.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid x:Name="RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="TitleBarDragRegion" Grid.Row="0" Padding="16,0,12,0" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Image x:Name="TitleBarIconImage" Width="22" Height="22" Stretch="Uniform" />
+            <TextBlock
+                x:Name="WindowTitleText"
+                Grid.Column="1"
+                Margin="10,0,0,0"
+                VerticalAlignment="Center"
+                FontSize="13"
+                FontWeight="SemiBold" />
+        </Grid>
+
+        <ScrollViewer
+            Grid.Row="1"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            ZoomMode="Disabled">
+            <Grid MaxWidth="780" Padding="32,24,32,30" HorizontalAlignment="Center">
+                <StackPanel Spacing="18">
+                    <Grid ColumnSpacing="18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="76" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Image x:Name="HeroIconImage" Width="72" Height="72" Stretch="Uniform" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="5">
+                            <TextBlock
+                                x:Name="HeroTitleText"
+                                FontSize="30"
+                                FontWeight="Bold"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                x:Name="HeroSubtitleText"
+                                FontSize="15"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <StackPanel Spacing="18">
+                            <Grid ColumnSpacing="28">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="6">
+                                    <TextBlock x:Name="InstalledCaptionText" Style="{StaticResource CaptionStyle}" />
+                                    <TextBlock x:Name="InstalledValueText" Text="—" Style="{StaticResource VersionValueStyle}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="6">
+                                    <TextBlock x:Name="PackageCaptionText" Style="{StaticResource CaptionStyle}" />
+                                    <TextBlock x:Name="PackageValueText" Text="—" Style="{StaticResource VersionValueStyle}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Border
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                CornerRadius="10"
+                                Padding="14,12">
+                                <StackPanel Spacing="5">
+                                    <TextBlock
+                                        x:Name="DataNoticeText"
+                                        TextWrapping="Wrap"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock
+                                        x:Name="ElevationNoticeText"
+                                        TextWrapping="Wrap"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        x:Name="StatusPanel"
+                        Padding="16,14"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                x:Name="StatusGlyphText"
+                                Width="20"
+                                VerticalAlignment="Top"
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Text="ℹ" />
+                            <StackPanel Grid.Column="1" Spacing="10">
+                                <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ProgressBar
+                                        x:Name="InstallProgressBar"
+                                        Minimum="0"
+                                        Maximum="100"
+                                        Value="2"
+                                        Height="4"
+                                        VerticalAlignment="Center" />
+                                    <ProgressRing
+                                        x:Name="BusyRing"
+                                        Grid.Column="1"
+                                        Width="22"
+                                        Height="22"
+                                        IsActive="True" />
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <StackPanel Spacing="12">
+                            <CheckBox x:Name="LaunchAfterCheckBox" />
+                            <CheckBox x:Name="OpenDefaultsCheckBox" />
+                            <CheckBox
+                                x:Name="SecurityDriverPanelCheckBox"
+                                Visibility="Collapsed"
+                                Checked="SecurityDriverPanelCheckBox_Changed"
+                                Unchecked="SecurityDriverPanelCheckBox_Changed" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            x:Name="DetailsButton"
+                            Click="DetailsButton_Click"
+                            HorizontalAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0" />
+                        <Button
+                            x:Name="CancelButton"
+                            Grid.Column="1"
+                            MinWidth="112"
+                            Click="CancelButton_Click" />
+                        <Button
+                            x:Name="PrimaryButton"
+                            Grid.Column="2"
+                            MinWidth="190"
+                            Click="PrimaryButton_Click" />
+                    </Grid>
+
+                    <Expander x:Name="DetailsExpander" IsExpanded="False">
+                        <TextBox
+                            x:Name="DetailsTextBox"
+                            MinHeight="180"
+                            MaxHeight="280"
+                            IsReadOnly="True"
+                            AcceptsReturn="True"
+                            TextWrapping="NoWrap"
+                            FontFamily="Consolas"
+                            FontSize="12" />
+                    </Expander>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

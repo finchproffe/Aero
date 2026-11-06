@@ -1,0 +1,82 @@
+# Build output
+bin/
+obj/
+out/
+artifacts/
+TestResults/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS Code
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Windows packaging
+AppPackages/
+BundleArtifacts/
+Generated Files/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.cer
+
+# Local runtime data
+Aero.UserData/
+UserData/
+
+# Logs and dumps
+*.log
+*.dmp
+*.tmp
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local-only build scripts and their self-test (kept on the dev machine, not published)
+/scripts/
+/*.cmd
+/tests/workflow/
+/tests/Aero.Workflow.SmokeTests/
+/tests/ui/
+
+# Local working notes, handoffs and dumps
+/prompt.txt
+/*.diff
+/FILE-INVENTORY.json
+/UI_CHANGED_FILES.txt
+/vault-boundary-result.txt
+/NEW_CHAT_HANDOFF_RU.md
+/MSIX_BROKER_BUILD_FIX_RU.md
+/PERFORMANCE_PHASE1_BUILD_FIX_RU.md
+/UI_CHANGES_RU.md
+/README_RU.md
+/src/*.zip
+*.binlog
+
+# Signing material
+*.pfx
+*.p12
+*.snk
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets.json
+
+# Notes, audits and design docs stay local
+/docs/
+/design-system/
+/LICENSE-PLAN.md
+/BRANDING.md
+/README.ru.md

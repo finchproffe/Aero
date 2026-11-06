@@ -1,0 +1,171 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Aero.App</RootNamespace>
+    <AssemblyName>Aero</AssemblyName>
+    <Version>0.24.0.0</Version>
+    <FileVersion>0.24.0.0</FileVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AeroIcon.ico</ApplicationIcon>
+    <UseWinUI>true</UseWinUI>
+
+    <!-- Normal Visual Studio builds remain unpackaged. -->
+    <WindowsPackageType Condition="'$(BuildMsix)' != 'true'">None</WindowsPackageType>
+
+    <!-- BUILD_AERO_MSIX.cmd passes BuildMsix=true. Only that build enables MSIX tooling. -->
+    <WindowsPackageType Condition="'$(BuildMsix)' == 'true'">MSIX</WindowsPackageType>
+    <EnableMsixTooling Condition="'$(BuildMsix)' == 'true'">true</EnableMsixTooling>
+    <PublishProfile Condition="'$(BuildMsix)' == 'true'">Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
+
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <PlatformTarget Condition="'$(Platform)' == 'x64'">x64</PlatformTarget>
+    <PlatformTarget Condition="'$(Platform)' == 'ARM64'">ARM64</PlatformTarget>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aero.Core\Aero.Core.csproj" />
+    <ProjectReference Include="..\Aero.Downloads\Aero.Downloads.csproj" />
+    <ProjectReference Include="..\Aero.Extensions\Aero.Extensions.csproj" />
+    <ProjectReference Include="..\Aero.Navigation\Aero.Navigation.csproj" />
+    <ProjectReference Include="..\Aero.Search\Aero.Search.csproj" />
+    <ProjectReference Include="..\Aero.Shield\Aero.Shield.csproj" />
+    <ProjectReference Include="..\Aero.Storage\Aero.Storage.csproj" />
+    <ProjectReference Include="..\Aero.WebView\Aero.WebView.csproj" />
+    <ProjectReference Include="..\Aero.Security\Aero.Security.csproj" />
+    <!-- During normal Visual Studio builds this keeps the Broker in the build graph.
+         MSIX builds compile Broker separately before evaluating Aero.App, because a
+         self-contained executable project cannot reference a framework-dependent
+         executable project (NETSDK1150), even with ReferenceOutputAssembly=false. -->
+    <ProjectReference Include="..\Aero.Security.Broker\Aero.Security.Broker.csproj"
+                      ReferenceOutputAssembly="false"
+                      Condition="'$(BuildMsix)' != 'true'" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <AeroBrokerRuntimeSuffix Condition="'$(BuildMsix)' == 'true'">win-$(Platform)\</AeroBrokerRuntimeSuffix>
+    <AeroBrokerOutputDir>$(MSBuildProjectDirectory)\..\Aero.Security.Broker\bin\$(Platform)\$(Configuration)\$(TargetFramework)\$(AeroBrokerRuntimeSuffix)</AeroBrokerOutputDir>
+  </PropertyGroup>
+
+  <Target Name="ValidateAeroSecurityBrokerPayload"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(BuildMsix)' == 'true'">
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.exe')"
+           Text="Aero Security Broker payload is missing. Build Aero.Security.Broker before the MSIX build." />
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.dll')"
+           Text="Aero Security Broker managed payload is missing." />
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.deps.json')"
+           Text="Aero Security Broker dependency manifest is missing." />
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.runtimeconfig.json')"
+           Text="Aero Security Broker runtime configuration is missing." />
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.pri')"
+           Text="Aero Security Broker WinUI resource index is missing." />
+    <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.pri.payload')"
+           Text="Aero Security Broker independent MSIX resource payload is missing." />
+  </Target>
+
+  <ItemGroup Condition="'$(BuildMsix)' == 'true'">
+    <!-- These files already exist before Aero.App is evaluated because the MSIX
+         script builds Broker in a separate MSBuild invocation. They are content,
+         not an executable ProjectReference, so Broker remains a separate process. -->
+    <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.exe"
+             Link="Aero.Security.Broker.exe"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.dll"
+             Link="Aero.Security.Broker.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.deps.json"
+             Link="Aero.Security.Broker.deps.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.runtimeconfig.json"
+             Link="Aero.Security.Broker.runtimeconfig.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.pri.payload"
+             Link="Aero.Security.Broker.pri"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyAeroSecurityBroker" AfterTargets="Build">
+    <ItemGroup>
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.exe"
+                          Condition="Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.exe')" />
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.dll"
+                          Condition="Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.dll')" />
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.deps.json"
+                          Condition="Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.deps.json')" />
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.runtimeconfig.json"
+                          Condition="Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.runtimeconfig.json')" />
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.pri"
+                          Condition="Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.pri')" />
+      <_AeroBrokerPayload Include="$(AeroBrokerOutputDir)Aero.Security.Broker.pdb"
+                          Condition="'$(Configuration)' == 'Debug' and Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AeroBrokerPayload)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(_AeroBrokerPayload)' != ''" />
+  </Target>
+
+  <ItemGroup>
+    <Content Include="Assets\AeroIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\AeroIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\AeroIconUi.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Localization\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Fonts\Manrope.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ThirdParty\Manrope\OFL.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ThirdParty\uBlockOrigin\LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ThirdParty\uBlockOrigin\NOTICE.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Legacy implementations are excluded so cumulative updates remain safe even
+       before the universal workflow removes obsolete source files. -->
+  <ItemGroup>
+    <Compile Remove="Security\PasswordVaultService.cs" />
+    <Compile Remove="Security\WindowsHelloCngKey.cs" />
+    <Compile Remove="Data\BrowserDataStore.cs" />
+    <Compile Remove="Data\ExtensionCatalog.cs" />
+    <Compile Remove="Data\ExtensionRegistry.cs" />
+    <Compile Remove="Speed\RequestBlocker.cs" />
+    <Compile Remove="Speed\ShieldFilterStore.cs" />
+  </ItemGroup>
+
+  <!-- Do not expose an AppxManifest to normal unpackaged Debug/Release builds. -->
+  <ItemGroup Condition="'$(BuildMsix)' == 'true'">
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+    <Content Include="Images\**\*.png" />
+  </ItemGroup>
+</Project>

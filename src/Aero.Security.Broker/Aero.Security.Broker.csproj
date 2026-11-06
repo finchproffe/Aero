@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>Aero.Security.BrokerHost</RootNamespace>
+    <AssemblyName>Aero.Security.Broker</AssemblyName>
+    <Version>0.24.0.0</Version>
+    <FileVersion>0.24.0.0</FileVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Aero.App\Assets\AeroIcon.ico</ApplicationIcon>
+    <UseWinUI>true</UseWinUI>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64;ARM64</Platforms>
+    <PlatformTarget Condition="'$(Platform)' == 'x64'">x64</PlatformTarget>
+    <PlatformTarget Condition="'$(Platform)' == 'ARM64'">ARM64</PlatformTarget>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishSingleFile>false</PublishSingleFile>
+    <!-- Native AOT is opt-in until the Windows Hello/CNG publish path is validated on x64 and ARM64.
+         When enabled, BrokerProcessHardening also activates ProhibitDynamicCode. -->
+    <PublishAot Condition="'$(AeroBrokerNativeAot)' == 'true'">true</PublishAot>
+    <IlcOptimizationPreference Condition="'$(AeroBrokerNativeAot)' == 'true'">Speed</IlcOptimizationPreference>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
+    <ProjectReference Include="..\Aero.Security\Aero.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\Aero.App\Assets\AeroIcon.png" Link="Assets\AeroIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- MSIX treats every input whose source extension is .pri as a resource
+       graph to merge. Aero.App therefore packages this byte-identical alias
+       and links it back to the Broker's real .pri name. -->
+  <Target Name="CreateIndependentMsixPriPayload" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetDir)Aero.Security.Broker.pri"
+          DestinationFiles="$(TargetDir)Aero.Security.Broker.pri.payload"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(TargetDir)Aero.Security.Broker.pri')" />
+    <ItemGroup>
+      <FileWrites Include="$(TargetDir)Aero.Security.Broker.pri.payload" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,0 +1,2524 @@
+<Window
+    x:Class="Aero.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Aero">
+
+    <Grid
+        x:Name="RootGrid"
+        Loaded="RootGrid_Loaded"
+        KeyDown="RootGrid_PageToolsKeyDown"
+        KeyboardAcceleratorPlacementMode="Hidden"
+        Background="{ThemeResource AeroWindowBrush}"
+        RequestedTheme="Dark">
+
+        <Grid.Resources>
+            <Style TargetType="FlyoutPresenter">
+                <Setter Property="BorderBrush" Value="{ThemeResource AeroSoftBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="12" />
+            </Style>
+        </Grid.Resources>
+
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NewTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NewWindowAccelerator_Invoked" />
+            <KeyboardAccelerator Key="N" Modifiers="Control,Shift" Invoked="NewPrivateWindowAccelerator_Invoked" />
+            <KeyboardAccelerator Key="T" Modifiers="Control,Shift" Invoked="RestoreTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="W" Modifiers="Control" Invoked="CloseTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="L" Modifiers="Control" Invoked="FocusAddressAccelerator_Invoked" />
+            <KeyboardAccelerator Key="D" Modifiers="Control" Invoked="BookmarkAccelerator_Invoked" />
+            <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="HistoryAccelerator_Invoked" />
+            <KeyboardAccelerator Key="J" Modifiers="Control" Invoked="DownloadsAccelerator_Invoked" />
+            <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="CommandPaletteAccelerator_Invoked" />
+            <KeyboardAccelerator Key="P" Modifiers="Control,Shift" Invoked="CommandPaletteAccelerator_Invoked" />
+            <KeyboardAccelerator Key="E" Modifiers="Control,Shift" Invoked="ExtensionsAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Escape" Modifiers="Shift" Invoked="TaskManagerAccelerator_Invoked" />
+            <KeyboardAccelerator Key="S" Modifiers="Control,Shift" Invoked="ShieldAccelerator_Invoked" />
+            <KeyboardAccelerator Key="M" Modifiers="Control,Shift" Invoked="MuteTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked" />
+            <KeyboardAccelerator Key="P" Modifiers="Control" Invoked="PrintPageAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="FindAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F3" Invoked="FindNextAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F3" Modifiers="Shift" Invoked="FindPreviousAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F11" Invoked="FullscreenAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Tab" Modifiers="Control" Invoked="NextTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Tab" Modifiers="Control,Shift" Invoked="PreviousTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="R" Modifiers="Control" Invoked="ReloadAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F5" Invoked="ReloadAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Escape" Invoked="StopAccelerator_Invoked" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition x:Name="TitleBarRow" Height="40" />
+            <RowDefinition x:Name="ToolbarRow" Height="48" />
+            <RowDefinition x:Name="BookmarksBarRow" Height="0" />
+            <RowDefinition x:Name="ProgressRow" Height="2" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom title bar. Native caption buttons remain on the right. -->
+        <Grid
+            x:Name="TitleBarSurface"
+            Grid.Row="0"
+            AllowDrop="True"
+            DragEnter="BrowserFileDrop_DragEnter"
+            DragLeave="BrowserFileDrop_DragLeave"
+            DragOver="BrowserFileDrop_DragOver"
+            Drop="BrowserFileDrop_Drop"
+            SizeChanged="TitleBarSurface_SizeChanged"
+            Background="{ThemeResource AeroTitleBarBrush}">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftTitleBarInsetColumn" Width="0" />
+                <ColumnDefinition Width="34" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="140" />
+                <ColumnDefinition x:Name="RightTitleBarInsetColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                x:Name="TitleBarCustomBackground"
+                Grid.ColumnSpan="5"
+                Background="Transparent"
+                IsHitTestVisible="False" />
+
+            <Viewbox
+                x:Name="TitleBarMountainLayer"
+                Grid.ColumnSpan="5"
+                Stretch="Fill"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+                <Canvas Width="1200" Height="100">
+                    <Path
+                        x:Name="MountainBackPath"
+                        Data="M 0,100 L 0,74 L 120,34 L 242,70 L 390,22 L 535,67 L 690,28 L 845,72 L 1010,36 L 1200,76 L 1200,100 Z"
+                        Fill="#663C6685" />
+                    <Path
+                        x:Name="MountainMistPath"
+                        Data="M 0,100 L 0,86 L 170,58 L 310,82 L 470,51 L 620,84 L 790,57 L 930,83 L 1080,55 L 1200,86 L 1200,100 Z"
+                        Fill="#554E7DA0" />
+                    <Path
+                        x:Name="MountainFrontPath"
+                        Data="M 0,100 L 0,91 L 155,70 L 286,90 L 455,62 L 640,91 L 805,69 L 972,91 L 1110,72 L 1200,91 L 1200,100 Z"
+                        Fill="#775E91B3" />
+                </Canvas>
+            </Viewbox>
+
+            <Button
+                x:Name="TabListButton"
+                Grid.Column="1"
+                Width="28"
+                Height="28"
+                Margin="3,5"
+                Style="{StaticResource ChromeIconButtonStyle}"
+                Click="TabListButton_Click"
+                AutomationProperties.Name="All tabs"
+                    ToolTipService.ToolTip="All tabs">
+                <FontIcon FontSize="11" Glyph="&#xE70D;" />
+            </Button>
+
+            <ScrollViewer
+                x:Name="TabScrollViewer"
+                Grid.Column="2"
+                HorizontalAlignment="Left"
+                HorizontalScrollBarVisibility="Hidden"
+                HorizontalScrollMode="Enabled"
+                PointerCaptureLost="TabScrollViewer_PointerCaptureLost"
+                PointerExited="TabStripPointerExited"
+                PointerMoved="TabScrollViewer_PointerMoved"
+                PointerReleased="TabScrollViewer_PointerReleased"
+                VerticalScrollBarVisibility="Disabled"
+                VerticalScrollMode="Disabled"
+                ZoomMode="Disabled">
+                <StackPanel
+                    x:Name="TabStripHost"
+                    Orientation="Horizontal"
+                    Spacing="2">
+                    <StackPanel
+                        x:Name="TabStripPanel"
+                        Orientation="Horizontal"
+                        Spacing="2" />
+                    <Button
+                        x:Name="AddTabButton"
+                        Width="28"
+                        Height="28"
+                        Margin="2,5,4,5"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="AddTabButton_Click"
+                        PointerPressed="AddTabButton_PointerPressed"
+                        AutomationProperties.Name="New tab (Ctrl+T)"
+                    ToolTipService.ToolTip="New tab (Ctrl+T)">
+                        <FontIcon FontSize="12" Glyph="&#xE710;" />
+                    </Button>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid
+                x:Name="TitleBarDragRegion"
+                Grid.Column="3"
+                Background="Transparent">
+                <Border
+                    x:Name="PrivateModeBadge"
+                    Margin="12,5,8,5"
+                    Padding="10,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                    BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="9"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="12" Glyph="&#xE72E;" />
+                        <TextBlock x:Name="ProfileModeBadgeText" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="Private" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border
+                x:Name="FileDropBadge"
+                Grid.ColumnSpan="5"
+                Margin="54,5,150,5"
+                Padding="16,0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Canvas.ZIndex="200"
+                Background="#E61B252E"
+                BorderBrush="{ThemeResource AeroAccentBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                IsHitTestVisible="False"
+                Opacity="0"
+                Visibility="Collapsed">
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="9">
+                    <FontIcon FontSize="15" Glyph="&#xE8B7;" />
+                    <TextBlock
+                        x:Name="FileDropBadgeText"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Text="Drop files to open in Aero" />
+                </StackPanel>
+            </Border>
+
+            <Border
+                Grid.Column="4"
+                Background="Transparent"
+                IsHitTestVisible="False" />
+        </Grid>
+
+        <!-- Navigation toolbar. -->
+        <Border
+            x:Name="NavigationToolbarSurface"
+            Grid.Row="1"
+            Padding="8,5"
+            Background="{ThemeResource AeroToolbarBrush}"
+            BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+            BorderThickness="0,0,0,1">
+
+            <Grid
+                x:Name="NavigationToolbarGrid"
+                ColumnSpacing="3"
+                SizeChanged="NavigationToolbarGrid_SizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    x:Name="BackButton"
+                    Grid.Column="0"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="BackButton_Click"
+                    IsEnabled="False"
+                    AutomationProperties.Name="Back (Alt+Left)"
+                    ToolTipService.ToolTip="Back (Alt+Left)">
+                    <Button.Resources>
+                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                    </Button.Resources>
+                    <FontIcon FontSize="13" Glyph="&#xE72B;" />
+                </Button>
+
+                <Button
+                    x:Name="ForwardButton"
+                    Grid.Column="1"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="ForwardButton_Click"
+                    IsEnabled="False"
+                    AutomationProperties.Name="Forward (Alt+Right)"
+                    ToolTipService.ToolTip="Forward (Alt+Right)">
+                    <Button.Resources>
+                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                    </Button.Resources>
+                    <FontIcon FontSize="13" Glyph="&#xE72A;" />
+                </Button>
+
+                <Button
+                    x:Name="ReloadButton"
+                    Grid.Column="2"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="ReloadButton_Click"
+                    AutomationProperties.Name="Reload (Ctrl+R)"
+                    ToolTipService.ToolTip="Reload (Ctrl+R)">
+                    <FontIcon x:Name="ReloadIcon" FontSize="13" Glyph="&#xE72C;" />
+                </Button>
+
+                <Button
+                    x:Name="HomeButton"
+                    Grid.Column="3"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="HomeButton_Click"
+                    AutomationProperties.Name="Aero Home"
+                    ToolTipService.ToolTip="Aero Home">
+                    <FontIcon FontSize="13" Glyph="&#xE80F;" />
+                </Button>
+
+                <Border
+                    x:Name="AddressSurface"
+                    Grid.Column="5"
+                    Height="36"
+                    Padding="6,0,4,0"
+                    Background="{ThemeResource AeroAddressBrush}"
+                    BorderBrush="{ThemeResource AeroAddressBrush}"
+                    BorderThickness="1"
+                    CornerRadius="18"
+                    PointerEntered="AddressSurface_PointerEntered"
+                    PointerExited="AddressSurface_PointerExited"
+                    RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="AddressSurfaceTransform" ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
+
+                    <Grid ColumnSpacing="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            x:Name="ShieldButton"
+                            Grid.Column="0"
+                            Width="28"
+                            Height="28"
+                            Style="{StaticResource ChromeIconButtonStyle}"
+                            AutomationProperties.Name="Aero Shield"
+                    ToolTipService.ToolTip="Aero Shield">
+                            <Button.Flyout>
+                                <Flyout
+                                    x:Name="ShieldFlyout"
+                                    Placement="Bottom"
+                                    Opened="ShieldFlyout_Opened">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="BorderBrush" Value="Transparent" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="CornerRadius" Value="14" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <Border
+                                        Width="382"
+                                        Padding="14"
+                                        Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                        CornerRadius="13">
+                                        <ScrollViewer MaxHeight="570" VerticalScrollBarVisibility="Auto">
+                                            <StackPanel Spacing="13">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="3">
+                                                        <TextBlock FontSize="17" FontWeight="SemiBold" Text="Aero Shield" />
+                                                        <TextBlock
+                                                            x:Name="ShieldSiteText"
+                                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                            FontSize="12"
+                                                            Text="Open a website to manage protection"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                    <ToggleSwitch
+                                                        x:Name="SiteShieldToggle"
+                                                        Grid.Column="1"
+                                                        OffContent=""
+                                                        OnContent=""
+                                                        Toggled="SiteShieldToggle_Toggled" />
+                                                </Grid>
+
+                                                <Border
+                                                    Padding="12"
+                                                    Background="{ThemeResource AeroSurfaceBrush}"
+                                                    CornerRadius="10">
+                                                    <StackPanel Spacing="8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel Spacing="2">
+                                                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="Blocking engine" />
+                                                                <TextBlock
+                                                                    x:Name="UBlockEngineStatusText"
+                                                                    FontSize="12"
+                                                                    Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                                    Text="Checking uBlock Origin…"
+                                                                    TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                            <Border
+                                                                Grid.Column="1"
+                                                                Padding="8,4"
+                                                                Background="{ThemeResource AeroAddressBrush}"
+                                                                CornerRadius="8">
+                                                                <TextBlock
+                                                                    x:Name="UBlockEngineBadgeText"
+                                                                    FontSize="12"
+                                                                    FontWeight="SemiBold"
+                                                                    Text="Checking" />
+                                                            </Border>
+                                                        </Grid>
+                                                        <TextBlock
+                                                            x:Name="UBlockEngineHelpText"
+                                                            FontSize="12"
+                                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                            Text="Aero native filtering remains active until uBlock Origin is ready."
+                                                            TextWrapping="Wrap" />
+                                                        <ComboBox
+                                                            x:Name="ShieldEngineComboBox"
+                                                            HorizontalAlignment="Stretch"
+                                                            SelectionChanged="ShieldEngineComboBox_SelectionChanged">
+                                                            <ComboBoxItem Content="Hybrid — Aero fast lane + uBlock Origin" />
+                                                            <ComboBoxItem Content="Advanced — uBlock Origin only" />
+                                                            <ComboBoxItem Content="Native — Aero engine only" />
+                                                        </ComboBox>
+                                                        <Grid ColumnSpacing="8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button
+                                                                x:Name="OpenUBlockControlsButton"
+                                                                Height="30"
+                                                                HorizontalAlignment="Stretch"
+                                                                Click="OpenUBlockControlsButton_Click"
+                                                                Content="Advanced controls"
+                                                                Visibility="Collapsed" />
+                                                            <Button
+                                                                x:Name="RetryUBlockButton"
+                                                                Grid.Column="1"
+                                                                Height="30"
+                                                                HorizontalAlignment="Stretch"
+                                                                Click="RetryUBlockButton_Click"
+                                                                Content="Retry install"
+                                                                Visibility="Collapsed" />
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <StackPanel x:Name="NativeShieldControls" Spacing="13">
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Padding="12,10" Background="{ThemeResource AeroSurfaceBrush}" CornerRadius="10">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock x:Name="ShieldBlockedText" FontSize="20" FontWeight="SemiBold" Text="0" />
+                                                            <TextBlock x:Name="ShieldSessionText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="blocked on page" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Padding="12,10" Background="{ThemeResource AeroSurfaceBrush}" CornerRadius="10">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock x:Name="ShieldRuleCountText" FontSize="20" FontWeight="SemiBold" Text="45" />
+                                                            <TextBlock x:Name="ShieldRuleLabelText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="native rules" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+
+                                                <StackPanel Spacing="7">
+                                                    <TextBlock FontSize="12" FontWeight="SemiBold" Text="Protection mode" />
+                                                    <ComboBox
+                                                        x:Name="ShieldModeComboBox"
+                                                        HorizontalAlignment="Stretch"
+                                                        SelectionChanged="ShieldModeComboBox_SelectionChanged">
+                                                        <ComboBoxItem Content="Standard — fewer broken sites" />
+                                                        <ComboBoxItem Content="Strict — stronger third-party blocking" />
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <ToggleSwitch
+                                                    x:Name="ShieldCosmeticToggle"
+                                                    Header="Hide ad placeholders"
+                                                    OffContent="Network blocking only"
+                                                    OnContent="Cosmetic filtering enabled"
+                                                    Toggled="ShieldCosmeticToggle_Toggled" />
+
+                                                <ToggleSwitch
+                                                    x:Name="ShieldYoutubeToggle"
+                                                    Header="YouTube clean mode"
+                                                    OffContent="Use the selected engine only"
+                                                    OnContent="Hide promoted cards, overlays and press Skip automatically"
+                                                    Toggled="ShieldYoutubeToggle_Toggled" />
+
+                                                <StackPanel Spacing="7">
+                                                    <TextBlock FontSize="12" FontWeight="SemiBold" Text="Custom filters" />
+                                                    <TextBox
+                                                        x:Name="ShieldRulesTextBox"
+                                                        MinHeight="68"
+                                                        MaxHeight="100"
+                                                        AcceptsReturn="True"
+                                                        TextWrapping="NoWrap"
+                                                        PlaceholderText="||example-ad-domain.com^&#x0a;example.com##.sponsored" />
+                                                    <Button
+                                                        Height="30"
+                                                        HorizontalAlignment="Left"
+                                                        Padding="12,0"
+                                                        Click="ApplyShieldRulesButton_Click"
+                                                        Content="Apply rules" />
+                                                </StackPanel>
+
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button
+                                                        Height="32"
+                                                        HorizontalAlignment="Stretch"
+                                                        Click="ReloadShieldButton_Click"
+                                                        Content="Reload page" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Height="32"
+                                                        HorizontalAlignment="Stretch"
+                                                        Click="UpdateShieldListsButton_Click"
+                                                        Content="Update filters" />
+                                                </Grid>
+                                                </StackPanel>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock
+                                                            x:Name="ShieldStatusText"
+                                                            FontSize="12"
+                                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                            Text="Built-in protection is active" />
+                                                        <TextBlock
+                                                            FontSize="12"
+                                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                            Text="Filter sources: EasyList + EasyPrivacy" />
+                                                    </StackPanel>
+                                                    <HyperlinkButton
+                                                        Grid.Column="1"
+                                                        Padding="6,0"
+                                                        VerticalAlignment="Bottom"
+                                                        Click="UblockOriginLink_Click"
+                                                        FontSize="10"
+                                                        Content="uBlock Origin ↗" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+                            <FontIcon x:Name="ShieldIcon" FontSize="12" Glyph="&#xE83D;" />
+                        </Button>
+
+                        <Button
+                            x:Name="SitePermissionsButton"
+                            Grid.Column="1"
+                            Width="28"
+                            Height="28"
+                            Style="{StaticResource ChromeIconButtonStyle}"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Site information and permissions"
+                    ToolTipService.ToolTip="Site information and permissions">
+                            <Button.Flyout>
+                                <Flyout
+                                    x:Name="SitePermissionsFlyout"
+                                    Placement="Bottom"
+                                    Opened="CoreSitePermissionsFlyout_Opened">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="BorderBrush" Value="Transparent" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="CornerRadius" Value="14" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <Border
+                                        Width="440"
+                                        Padding="14"
+                                        Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                        CornerRadius="13">
+                                        <ScrollViewer MaxHeight="700" VerticalScrollBarVisibility="Auto">
+                                            <StackPanel Spacing="12">
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock FontSize="17" FontWeight="SemiBold" Text="Site privacy" />
+                                                    <TextBlock
+                                                        x:Name="SitePermissionsSiteText"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                        Text="Open a website to inspect site privacy"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        x:Name="SiteConnectionText"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                        Text="Connection information unavailable" />
+                                                </StackPanel>
+
+                                                <Border Padding="10" Background="{ThemeResource AeroSurfaceBrush}" CornerRadius="10">
+                                                    <StackPanel Spacing="6">
+                                                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="Current state" />
+                                                        <TextBlock x:Name="SiteActivePermissionsText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Active permissions: none" TextWrapping="Wrap" />
+                                                        <TextBlock x:Name="SiteCookiesSummaryText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Cookies: checking…" />
+                                                        <TextBlock x:Name="SiteLocalStorageText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="localStorage: checking…" />
+                                                        <TextBlock x:Name="SiteShieldSummaryText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Shield: checking…" TextWrapping="Wrap" />
+                                                        <ToggleSwitch x:Name="SitePrivacyShieldToggle" Header="Shield for this site" Toggled="SitePrivacyShieldToggle_Toggled" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Padding="10" Background="{ThemeResource AeroSurfaceBrush}" CornerRadius="10">
+                                                    <StackPanel Spacing="8">
+                                                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="Cookies" />
+                                                        <ToggleSwitch x:Name="SiteThirdPartyCookiesToggle" Header="Block third-party cookies" Toggled="SiteThirdPartyCookiesToggle_Toggled" />
+                                                        <ToggleSwitch x:Name="SiteThirdPartyCookieExceptionToggle" Header="Allow third-party cookies on this site" Toggled="SiteThirdPartyCookieExceptionToggle_Toggled" />
+                                                        <ToggleSwitch x:Name="SiteTemporaryCookiesToggle" Header="Keep this site's cookies only until Aero closes" Toggled="SiteTemporaryCookiesToggle_Toggled" />
+                                                        <TextBlock x:Name="SiteCookieCleanupText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" TextWrapping="Wrap" />
+                                                        <StackPanel x:Name="SiteCookiesPanel" Spacing="6" />
+                                                        <Button x:Name="DeleteSiteCookiesButton" Height="32" HorizontalAlignment="Stretch" Click="DeleteSiteCookiesButton_Click" Content="Delete cookies for this site" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Padding="10" Background="{ThemeResource AeroSurfaceBrush}" CornerRadius="10">
+                                                    <StackPanel Spacing="8">
+                                                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="Permissions" />
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Camera" />
+                                                            <ComboBox x:Name="CameraPermissionComboBox" Grid.Column="1" Tag="Camera" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Microphone" />
+                                                            <ComboBox x:Name="MicrophonePermissionComboBox" Grid.Column="1" Tag="Microphone" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Location" />
+                                                            <ComboBox x:Name="LocationPermissionComboBox" Grid.Column="1" Tag="Geolocation" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Notifications" />
+                                                            <ComboBox x:Name="NotificationsPermissionComboBox" Grid.Column="1" Tag="Notifications" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Clipboard read" />
+                                                            <ComboBox x:Name="ClipboardReadPermissionComboBox" Grid.Column="1" Tag="ClipboardRead" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Automatic downloads" />
+                                                            <ComboBox x:Name="AutomaticDownloadsPermissionComboBox" Grid.Column="1" Tag="MultipleAutomaticDownloads" HorizontalAlignment="Stretch" SelectionChanged="CoreSitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Pop-ups" />
+                                                            <ComboBox x:Name="PopupsPermissionComboBox" Grid.Column="1" Tag="Popups" HorizontalAlignment="Stretch" SelectionChanged="SitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="126" /></Grid.ColumnDefinitions>
+                                                            <TextBlock VerticalAlignment="Center" Text="Redirects" />
+                                                            <ComboBox x:Name="RedirectsPermissionComboBox" Grid.Column="1" Tag="Redirects" HorizontalAlignment="Stretch" SelectionChanged="SitePermissionComboBox_SelectionChanged"><ComboBoxItem Content="Ask" /><ComboBoxItem Content="Allow" /><ComboBoxItem Content="Block" /></ComboBox>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <TextBlock x:Name="SitePermissionsHintText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Choices are stored locally in your Aero profile." TextWrapping="Wrap" />
+                                                <Button x:Name="ResetSitePermissionsButton" Height="32" HorizontalAlignment="Stretch" Click="CoreResetSitePermissionsButton_Click" Content="Reset permissions for this site" />
+                                                <Button x:Name="ResetSiteDataButton" Height="32" HorizontalAlignment="Stretch" Click="ResetSiteDataButton_Click" Content="Reset cookies and site storage" />
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+                            <FontIcon x:Name="SitePermissionsIcon" FontSize="12" Glyph="&#xE72E;" />
+                        </Button>
+
+                        <TextBox
+                            x:Name="AddressBox"
+                            Grid.Column="2"
+                            Height="28"
+                            Margin="0,2,0,0"
+                            Padding="2,5,8,0"
+                            VerticalAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Style="{StaticResource AddressTextBoxStyle}"
+                            GotFocus="AddressBox_GotFocus"
+                            LostFocus="AddressBox_LostFocus"
+                            TextChanged="AddressBox_TextChanged"
+                            KeyDown="AddressBox_KeyDown"
+                            PlaceholderText="Search Google or enter an address">
+                            <TextBox.Resources>
+                                <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                                <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="Transparent" />
+                            </TextBox.Resources>
+                        </TextBox>
+
+                        <Button
+                            x:Name="AddressZoomButton"
+                            Grid.Column="3"
+                            Height="24"
+                            MinWidth="42"
+                            Margin="0,0,2,0"
+                            Padding="8,0"
+                            Click="AddressZoomButton_Click"
+                            CornerRadius="10"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Reset page zoom"
+                    ToolTipService.ToolTip="Reset page zoom">
+                            <TextBlock x:Name="AddressZoomText" FontSize="12" FontWeight="SemiBold" Text="100%" />
+                        </Button>
+
+                        <Button
+                            x:Name="PasswordVaultButton"
+                            Grid.Column="4"
+                            Width="28"
+                            Height="28"
+                            Style="{StaticResource ChromeIconButtonStyle}"
+                            Visibility="Collapsed"
+                            AutomationProperties.Name="Aero Vault"
+                    ToolTipService.ToolTip="Aero Vault">
+                            <Button.Flyout>
+                                <Flyout
+                                    x:Name="PasswordVaultFlyout"
+                                    Placement="BottomEdgeAlignedRight"
+                                    Opened="PasswordVaultFlyout_Opened">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="BorderBrush" Value="Transparent" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="CornerRadius" Value="13" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <Border
+                                        Width="360"
+                                        Padding="14"
+                                        Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                        CornerRadius="12">
+                                        <StackPanel Spacing="11">
+                                            <StackPanel Spacing="3">
+                                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="Aero Vault" />
+                                                <TextBlock
+                                                    x:Name="PasswordVaultSiteText"
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                    Text="HTTPS sign-in pages only"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <TextBox
+                                                x:Name="PasswordVaultUsernameBox"
+                                                Header="Username or email"
+                                                PlaceholderText="name@example.com" />
+                                            <PasswordBox
+                                                x:Name="PasswordVaultPasswordBox"
+                                                Header="Password"
+                                                PasswordRevealMode="Peek"
+                                                PlaceholderText="Enter password" />
+
+                                            <Grid ColumnSpacing="7">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button
+                                                    x:Name="PasswordVaultSaveButton"
+                                                    Height="32"
+                                                    HorizontalAlignment="Stretch"
+                                                    Click="PasswordVaultSaveButton_Click"
+                                                    Content="Save" />
+                                                <Button
+                                                    x:Name="PasswordVaultFillButton"
+                                                    Grid.Column="1"
+                                                    Height="32"
+                                                    HorizontalAlignment="Stretch"
+                                                    Click="PasswordVaultFillButton_Click"
+                                                    Content="Fill with Hello" />
+                                                <Button
+                                                    x:Name="PasswordVaultDeleteButton"
+                                                    Grid.Column="2"
+                                                    Width="34"
+                                                    Height="32"
+                                                    Style="{StaticResource ChromeIconButtonStyle}"
+                                                    Click="PasswordVaultDeleteButton_Click"
+                                                    AutomationProperties.Name="Delete saved credential"
+                    ToolTipService.ToolTip="Delete saved credential">
+                                                    <FontIcon FontSize="12" Glyph="&#xE74D;" />
+                                                </Button>
+                                            </Grid>
+
+                                            <Button
+                                                x:Name="PasswordVaultGenerateButton"
+                                                Height="32"
+                                                HorizontalAlignment="Stretch"
+                                                Click="PasswordVaultGenerateButton_Click"
+                                                Content="Generate strong password without typing"
+                                                AutomationProperties.Name="Generates a 24-character password inside the one-operation Security Broker, saves it and fills the current HTTPS page."
+                    ToolTipService.ToolTip="Generates a 24-character password inside the one-operation Security Broker, saves it and fills the current HTTPS page." />
+
+                                            <TextBlock
+                                                x:Name="PasswordVaultStatusText"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                Text="Open an HTTPS sign-in page to use Aero Vault."
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+                            <FontIcon FontSize="12" Glyph="&#xE8D7;" />
+                        </Button>
+
+                        <Button
+                            x:Name="BookmarkButton"
+                            Grid.Column="5"
+                            Width="28"
+                            Height="28"
+                            Style="{StaticResource ChromeIconButtonStyle}"
+                            Click="BookmarkButton_Click"
+                            IsEnabled="False"
+                            AutomationProperties.Name="Bookmark this page (Ctrl+D)"
+                    ToolTipService.ToolTip="Bookmark this page (Ctrl+D)">
+                            <FontIcon x:Name="BookmarkIcon" FontSize="12" Glyph="&#xE734;" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <StackPanel
+                    x:Name="PinnedExtensionsPanel"
+                    Grid.Column="7"
+                    Orientation="Horizontal"
+                    Spacing="1" />
+
+                <Button
+                    x:Name="MediaHubButton"
+                    Grid.Column="8"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Visibility="Collapsed"
+                    AutomationProperties.Name="Media controls"
+                    ToolTipService.ToolTip="Media controls">
+                    <Button.Flyout>
+                        <Flyout
+                            x:Name="MediaHubFlyout"
+                            Placement="BottomEdgeAlignedRight"
+                            Opened="MediaHubFlyout_Opened">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="13" />
+                                    <Setter Property="MinWidth" Value="0" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <Border
+                                Width="420"
+                                MaxHeight="570"
+                                Padding="12"
+                                Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                CornerRadius="12">
+                                <Grid RowSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock FontSize="15" FontWeight="SemiBold" Text="Aero Media Hub" />
+                                        <TextBlock
+                                            x:Name="MediaHubSummaryText"
+                                            FontSize="12"
+                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                            Text="No active media" />
+                                    </StackPanel>
+
+                                    <Grid Grid.Row="1">
+                                        <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto">
+                                            <StackPanel x:Name="MediaSessionsPanel" Spacing="8" />
+                                        </ScrollViewer>
+                                        <StackPanel
+                                            x:Name="MediaHubEmptyState"
+                                            Margin="0,32"
+                                            HorizontalAlignment="Center"
+                                            Spacing="6">
+                                            <FontIcon
+                                                HorizontalAlignment="Center"
+                                                FontSize="26"
+                                                Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                Glyph="&#xE8D6;" />
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                Foreground="{ThemeResource AeroMutedTextBrush}"
+                                                FontSize="12"
+                                                Text="Play audio or video in a tab" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Grid.Row="2" ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="MediaDownloadStatusText"
+                                            VerticalAlignment="Center"
+                                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                                            FontSize="12"
+                                            Text="Choose real qualities; Aero uses yt-dlp and verified FFmpeg when streams must be merged."
+                                            TextTrimming="CharacterEllipsis" />
+                                        <Button
+                                            x:Name="CancelMediaDownloadButton"
+                                            Grid.Column="1"
+                                            Height="28"
+                                            Padding="10,0"
+                                            Click="CancelMediaDownloadButton_Click"
+                                            Content="Cancel"
+                                            Visibility="Collapsed" />
+                                        <Button
+                                            x:Name="OpenMediaDownloadButton"
+                                            Grid.Column="2"
+                                            Height="28"
+                                            Padding="10,0"
+                                            Click="OpenMediaDownloadButton_Click"
+                                            Content="Show file"
+                                            Visibility="Collapsed" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </Flyout>
+                    </Button.Flyout>
+                    <FontIcon x:Name="MediaHubIcon" FontSize="13" Glyph="&#xE768;" />
+                </Button>
+
+                <Button
+                    x:Name="ExtensionsToolbarButton"
+                    Grid.Column="9"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    AutomationProperties.Name="Extensions"
+                    ToolTipService.ToolTip="Extensions">
+                    <Button.Flyout>
+                        <Flyout
+                            x:Name="ExtensionsToolbarFlyout"
+                            Placement="BottomEdgeAlignedRight"
+                            Opened="ExtensionsToolbarFlyout_Opened">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="13" />
+                                    <Setter Property="MinWidth" Value="0" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <Border
+                                Width="330"
+                                MaxHeight="460"
+                                Padding="10"
+                                Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                CornerRadius="12">
+                                <Grid RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock FontSize="14" FontWeight="SemiBold" Text="Extensions" />
+                                            <TextBlock x:Name="ExtensionsToolbarStatusText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Loading" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Height="28" Padding="10,0" Click="ManageExtensionsToolbarButton_Click" Content="Manage" />
+                                    </Grid>
+                                    <ScrollViewer Grid.Row="1" MaxHeight="340" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel x:Name="ExtensionsToolbarItemsPanel" Spacing="4" />
+                                    </ScrollViewer>
+                                    <TextBlock
+                                        x:Name="ExtensionsToolbarEmptyText"
+                                        Grid.Row="2"
+                                        Margin="4,3"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource AeroMutedTextBrush}"
+                                        Text="No extensions installed"
+                                        Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                        </Flyout>
+                    </Button.Flyout>
+                    <FontIcon FontSize="13" Glyph="&#xEA86;" />
+                </Button>
+
+                <Button
+                    x:Name="MenuButton"
+                    Grid.Column="10"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    AutomationProperties.Name="Aero menu"
+                    ToolTipService.ToolTip="Aero menu">
+                    <Button.Flyout>
+                        <Flyout x:Name="AeroMenuFlyout" Placement="BottomEdgeAlignedRight" Opened="AeroMenuFlyout_Opened">
+                            <Flyout.FlyoutPresenterStyle>
+                                <Style TargetType="FlyoutPresenter">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="13" />
+                                    <Setter Property="MinWidth" Value="0" />
+                                </Style>
+                            </Flyout.FlyoutPresenterStyle>
+                            <Border
+                                Width="250"
+                                Padding="8"
+                                Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                                CornerRadius="12">
+                                <ScrollViewer MaxHeight="620" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Spacing="2">
+                                    <Button
+                                        x:Name="ProfileMenuHeaderButton"
+                                        Width="234"
+                                        MinHeight="52"
+                                        Margin="0,0,0,4"
+                                        HorizontalContentAlignment="Stretch"
+                                        Style="{StaticResource MenuActionButtonStyle}"
+                                        Click="ProfileMenuHeaderButton_Click"
+                                        AutomationProperties.Name="Current profile and profile switcher">
+                                        <Grid Width="214" ColumnSpacing="9">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="36" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="32" Height="32" Background="{ThemeResource AeroAddressBrush}" CornerRadius="16">
+                                                <TextBlock x:Name="ProfileMenuIconText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17" Text="●" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="0">
+                                                <TextBlock x:Name="ProfileMenuNameText" FontSize="13" FontWeight="SemiBold" Text="Default" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock x:Name="ProfileMenuSubtitleText" FontSize="12" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Switch profile" />
+                                            </StackPanel>
+                                            <FontIcon x:Name="ProfileMenuChevron" Grid.Column="2" VerticalAlignment="Center" FontSize="10" Glyph="&#xE70D;" />
+                                        </Grid>
+                                    </Button>
+                                    <Border
+                                        x:Name="ProfileSwitcherCard"
+                                        Width="234"
+                                        Margin="0,0,0,6"
+                                        Padding="5"
+                                        Background="{ThemeResource AeroSurfaceBrush}"
+                                        CornerRadius="10"
+                                        Visibility="Collapsed">
+                                        <StackPanel Spacing="3">
+                                            <StackPanel x:Name="ProfileSwitcherItemsPanel" Spacing="2" />
+                                            <Border Height="1" Margin="5,3" Background="{ThemeResource AeroSoftBorderBrush}" />
+                                            <Button Style="{StaticResource MenuActionButtonStyle}" Click="CreateProfileMenuButton_Click">
+                                                <Grid Width="202"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontSize="13" Glyph="&#xE710;" /><TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Create profile" /></Grid>
+                                            </Button>
+                                            <Button Style="{StaticResource MenuActionButtonStyle}" Click="OpenGuestProfileMenuButton_Click">
+                                                <Grid Width="202"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontSize="13" Glyph="&#xE72E;" /><TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Guest profile" /></Grid>
+                                            </Button>
+                                            <Button Style="{StaticResource MenuActionButtonStyle}" Click="ManageProfilesMenuButton_Click">
+                                                <Grid Width="202"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontSize="13" Glyph="&#xE713;" /><TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Manage profiles" /></Grid>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Height="1" Margin="8,0,8,6" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="NewTabMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE710;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="New tab" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+T" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="NewWindowMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE8A7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="New window" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+N" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="NewPrivateWindowMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE72E;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="New private window" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+Shift+N" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="RestoreClosedTabMenuItem" Style="{StaticResource MenuActionButtonStyle}" Click="RestoreClosedTabMenuItem_Click" IsEnabled="False">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE7A7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Restore closed tab" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+Shift+T" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="WorkspacesMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE8B7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Workspaces" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Border Height="1" Margin="8,6" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="HistoryMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE81C;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="History" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+H" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="BookmarksMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="12" Glyph="&#xE734;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Bookmarks" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="DownloadsMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE896;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Downloads" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+J" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="PasswordsMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE8D7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Passwords and autofill" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="ExtensionsMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xEA86;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Extensions" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+Shift+E" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="CommandPaletteMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE721;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Command palette" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+K" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="TaskManagerMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE9D9;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Aero Task Manager" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Shift+Esc" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Border Height="1" Margin="8,6" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                                    <Grid Height="36" Margin="2,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="36" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon VerticalAlignment="Center" FontSize="14" Glyph="&#xE71E;" />
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Zoom" />
+                                        <Button
+                                            x:Name="PageZoomOutButton"
+                                            Grid.Column="2"
+                                            Width="32"
+                                            Height="30"
+                                            Padding="0"
+                                            Click="PageZoomOutButton_Click"
+                                            AutomationProperties.Name="Zoom out (Ctrl+-)"
+                    ToolTipService.ToolTip="Zoom out (Ctrl+-)">
+                                            <FontIcon FontSize="11" Glyph="&#xE738;" />
+                                        </Button>
+                                        <Button
+                                            x:Name="PageZoomResetButton"
+                                            Grid.Column="3"
+                                            Height="30"
+                                            Padding="2,0"
+                                            Click="PageZoomResetButton_Click"
+                                            AutomationProperties.Name="Reset zoom (Ctrl+0)"
+                    ToolTipService.ToolTip="Reset zoom (Ctrl+0)">
+                                            <TextBlock x:Name="PageZoomText" FontSize="12" Text="100%" />
+                                        </Button>
+                                        <Button
+                                            x:Name="PageZoomInButton"
+                                            Grid.Column="4"
+                                            Width="32"
+                                            Height="30"
+                                            Padding="0"
+                                            Click="PageZoomInButton_Click"
+                                            AutomationProperties.Name="Zoom in (Ctrl++)"
+                    ToolTipService.ToolTip="Zoom in (Ctrl++)">
+                                            <FontIcon FontSize="11" Glyph="&#xE710;" />
+                                        </Button>
+                                    </Grid>
+
+                                    <Button x:Name="PrintPageMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="PrintPageMenuButton_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE749;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Print page" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+P" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="SavePdfMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="SavePdfMenuButton_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE74E;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Save page as PDF" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="CaptureVisibleMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="CaptureVisibleMenuButton_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE722;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Capture visible area" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="CaptureFullPageMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="CaptureFullPageMenuButton_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE8A7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Capture full page" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Border Height="1" Margin="8,6" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="SettingsMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE713;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Settings" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="FindMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE721;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Find on page" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="Ctrl+F" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="FullscreenMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE740;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Toggle fullscreen" />
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="F11" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="DeveloperToolsMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE943;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Developer tools" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Style="{StaticResource MenuActionButtonStyle}" Click="AboutMenuItem_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xE946;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="About Aero" />
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+                                </ScrollViewer>
+                            </Border>
+                        </Flyout>
+                    </Button.Flyout>
+                    <TextBlock
+                        x:Name="ProfileToolbarIconText"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Text="●" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <Border
+            x:Name="BookmarksBar"
+            Grid.Row="2"
+            Padding="7,2"
+            Background="{ThemeResource AeroToolbarBrush}"
+            BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Visibility="Collapsed">
+            <Grid ColumnSpacing="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ScrollViewer
+                    HorizontalScrollBarVisibility="Hidden"
+                    HorizontalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Disabled"
+                    VerticalScrollMode="Disabled">
+                    <StackPanel
+                        x:Name="BookmarksBarItemsPanel"
+                        AllowDrop="True"
+                        DragOver="BookmarksBarItemsPanel_DragOver"
+                        Drop="BookmarksBarItemsPanel_Drop"
+                        Orientation="Horizontal"
+                        Spacing="4" />
+                </ScrollViewer>
+                <Button
+                    x:Name="BookmarksBarAddButton"
+                    Grid.Column="1"
+                    Width="26"
+                    Height="26"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="BookmarksBarAddButton_Click"
+                    AutomationProperties.Name="Add bookmark"
+                    ToolTipService.ToolTip="Add bookmark">
+                    <FontIcon FontSize="11" Glyph="&#xE710;" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <ProgressBar
+            x:Name="PageProgress"
+            Grid.Row="3"
+            Height="2"
+            IsIndeterminate="True"
+            Visibility="Collapsed"
+            Foreground="{ThemeResource AeroAccentBrush}" />
+
+        <Grid
+            x:Name="BrowserHost"
+            Grid.Row="4"
+            AllowDrop="True"
+            DragEnter="BrowserHostFileDrop_DragEnter"
+            DragLeave="BrowserHostFileDrop_DragLeave"
+            DragOver="BrowserHostFileDrop_DragOver"
+            Drop="BrowserHostFileDrop_Drop"
+            Background="{ThemeResource AeroWindowBrush}">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SplitLeftColumn" Width="*" MinWidth="0" />
+                <ColumnDefinition x:Name="SplitDividerColumn" Width="0" />
+                <ColumnDefinition x:Name="SplitRightColumn" Width="0" MinWidth="0" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                x:Name="SplitLeftActiveOutline"
+                Grid.Column="0"
+                Margin="2"
+                Canvas.ZIndex="90"
+                BorderBrush="{ThemeResource AeroAccentBrush}"
+                BorderThickness="2"
+                CornerRadius="8"
+                IsHitTestVisible="False"
+                Visibility="Collapsed" />
+
+            <Border
+                x:Name="SplitRightActiveOutline"
+                Grid.Column="2"
+                Margin="2"
+                Canvas.ZIndex="90"
+                BorderBrush="{ThemeResource AeroAccentBrush}"
+                BorderThickness="2"
+                CornerRadius="8"
+                IsHitTestVisible="False"
+                Visibility="Collapsed" />
+
+            <Border
+                x:Name="SplitDivider"
+                Grid.Column="1"
+                Canvas.ZIndex="120"
+                Background="Transparent"
+                PointerCaptureLost="SplitDivider_PointerCaptureLost"
+                PointerMoved="SplitDivider_PointerMoved"
+                PointerPressed="SplitDivider_PointerPressed"
+                PointerReleased="SplitDivider_PointerReleased"
+                Visibility="Collapsed">
+                <Border
+                    Width="2"
+                    HorizontalAlignment="Center"
+                    Background="{ThemeResource AeroSoftBorderBrush}"
+                    CornerRadius="1" />
+            </Border>
+
+            <Border
+                x:Name="SplitViewToolbar"
+                Grid.ColumnSpan="3"
+                Margin="0,8,0,0"
+                Padding="5,3"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Canvas.ZIndex="140"
+                Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button
+                        Width="30"
+                        Height="28"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="SwapSplitPanesButton_Click"
+                        AutomationProperties.Name="Swap split panes"
+                    ToolTipService.ToolTip="Swap split panes">
+                        <FontIcon FontSize="12" Glyph="&#xE8AB;" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Height="28"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="ExitSplitViewButton_Click"
+                        AutomationProperties.Name="Exit Split View"
+                    ToolTipService.ToolTip="Exit Split View">
+                        <FontIcon FontSize="11" Glyph="&#xE711;" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Lightweight find-on-page bar. -->
+        <Border
+            x:Name="FindBar"
+            Grid.Row="4"
+            Canvas.ZIndex="35"
+            Width="360"
+            Height="46"
+            Margin="0,8,12,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Padding="8"
+            Background="{ThemeResource AeroRaisedSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="11"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="FindBarTransform" TranslateY="-8" />
+            </Border.RenderTransform>
+
+            <Grid ColumnSpacing="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    x:Name="FindBox"
+                    Grid.Column="0"
+                    Style="{StaticResource FindTextBoxStyle}"
+                    PlaceholderText="Find on this page"
+                    TextChanged="FindBox_TextChanged"
+                    KeyDown="FindBox_KeyDown" />
+
+                <TextBlock
+                    x:Name="FindStatusText"
+                    Grid.Column="1"
+                    MinWidth="42"
+                    Margin="3,0"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Foreground="{ThemeResource AeroMutedTextBrush}"
+                    FontSize="12"
+                    Text="Find" />
+
+                <Button
+                    Grid.Column="2"
+                    Width="28"
+                    Height="28"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="FindPreviousButton_Click"
+                    AutomationProperties.Name="Previous match (Shift+F3)"
+                    ToolTipService.ToolTip="Previous match (Shift+F3)">
+                    <FontIcon FontSize="12" Glyph="&#xE70E;" />
+                </Button>
+
+                <Button
+                    Grid.Column="3"
+                    Width="28"
+                    Height="28"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="FindNextButton_Click"
+                    AutomationProperties.Name="Next match (Enter)"
+                    ToolTipService.ToolTip="Next match (Enter)">
+                    <FontIcon FontSize="12" Glyph="&#xE70D;" />
+                </Button>
+
+                <Button
+                    Grid.Column="4"
+                    Width="28"
+                    Height="28"
+                    Style="{StaticResource ChromeIconButtonStyle}"
+                    Click="CloseFindButton_Click"
+                    AutomationProperties.Name="Close find"
+                    ToolTipService.ToolTip="Close find">
+                    <FontIcon FontSize="11" Glyph="&#xE711;" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- History and bookmarks library. -->
+        <Border
+            x:Name="LibraryPane"
+            Grid.Row="4"
+            Canvas.ZIndex="40"
+            Width="360"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="LibraryPaneTransform" TranslateX="24" />
+            </Border.RenderTransform>
+
+            <Grid Padding="15,13,15,15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock x:Name="LibraryTitleText" FontSize="18" FontWeight="SemiBold" Text="History" />
+                        <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Stored only on this computer" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="CloseLibraryButton_Click"
+                        AutomationProperties.Name="Close"
+                    ToolTipService.ToolTip="Close">
+                        <FontIcon FontSize="13" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="0,14,0,10" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="HistoryLibraryButton" Height="32" Click="HistoryLibraryButton_Click" Content="History" />
+                    <Button x:Name="BookmarksLibraryButton" Grid.Column="1" Height="32" Click="BookmarksLibraryButton_Click" Content="Bookmarks" />
+                </Grid>
+
+                <TextBox
+                    x:Name="LibrarySearchBox"
+                    Grid.Row="2"
+                    Height="32"
+                    Margin="0,0,0,12"
+                    Padding="12,0"
+                    PlaceholderText="Search"
+                    TextChanged="LibrarySearchBox_TextChanged" />
+
+                <Grid Grid.Row="3">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="LibraryItemsPanel" Spacing="6" />
+                    </ScrollViewer>
+                    <StackPanel
+                        x:Name="LibraryEmptyState"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="7"
+                        Visibility="Collapsed">
+                        <FontIcon HorizontalAlignment="Center" FontSize="28" Foreground="{ThemeResource AeroMutedTextBrush}" Glyph="&#xE81C;" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Text="Nothing here yet" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Pages you visit or save will appear here." />
+                    </StackPanel>
+                </Grid>
+
+                <Button
+                    x:Name="ClearHistoryButton"
+                    Grid.Row="4"
+                    Height="32"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Right"
+                    Padding="16,0"
+                    Click="ClearHistoryButton_Click"
+                    Content="Clear history" />
+            </Grid>
+        </Border>
+
+        <!-- Downloads manager. -->
+        <Border
+            x:Name="DownloadsPane"
+            Grid.Row="4"
+            Canvas.ZIndex="44"
+            Width="390"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="DownloadsPaneTransform" TranslateX="26" />
+            </Border.RenderTransform>
+
+            <Grid Padding="15,13,15,15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="Downloads" />
+                        <TextBlock x:Name="DownloadsSummaryText" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="No downloads yet" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource ChromeIconButtonStyle}" Click="CloseDownloadsButton_Click" AutomationProperties.Name="Close"
+                    ToolTipService.ToolTip="Close">
+                        <FontIcon FontSize="13" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="0,14,0,10" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Aero asks where to save each file." />
+                    <Button Grid.Column="1" Height="30" Padding="12,0" Click="OpenDownloadsFolderButton_Click" Content="Open folder" />
+                </Grid>
+
+                <Grid Grid.Row="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="DownloadsItemsPanel" Spacing="8" />
+                    </ScrollViewer>
+                    <StackPanel x:Name="DownloadsEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="7">
+                        <FontIcon HorizontalAlignment="Center" FontSize="30" Foreground="{ThemeResource AeroMutedTextBrush}" Glyph="&#xE896;" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Text="Nothing downloaded yet" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Active and recent downloads will appear here." />
+                    </StackPanel>
+                </Grid>
+
+            </Grid>
+        </Border>
+
+        <!-- Saved tab sets and workspace foundation. -->
+        <Border
+            x:Name="WorkspacesPane"
+            Grid.Row="4"
+            Canvas.ZIndex="45"
+            Width="410"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="WorkspacesPaneTransform" TranslateX="28" />
+            </Border.RenderTransform>
+
+            <Grid Padding="17,14,17,17" RowSpacing="14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="Workspaces" />
+                        <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Save and reopen complete tab sets." />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource ChromeIconButtonStyle}" Click="CloseWorkspacesButton_Click" AutomationProperties.Name="Close"
+                    ToolTipService.ToolTip="Close">
+                        <FontIcon FontSize="13" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <Border Grid.Row="1" Padding="12" Background="{ThemeResource AeroRaisedSurfaceBrush}" CornerRadius="11">
+                    <StackPanel Spacing="9">
+                        <TextBox
+                            x:Name="WorkspaceNameBox"
+                            Header="Workspace name"
+                            PlaceholderText="Research, work, music…" />
+                        <Button
+                            Height="34"
+                            HorizontalAlignment="Stretch"
+                            Click="SaveWorkspaceButton_Click"
+                            Content="Save current tabs" />
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="WorkspacesListPanel" Spacing="8" />
+                    </ScrollViewer>
+                    <StackPanel
+                        x:Name="WorkspacesEmptyState"
+                        Margin="0,42"
+                        HorizontalAlignment="Center"
+                        Spacing="7">
+                        <FontIcon HorizontalAlignment="Center" FontSize="28" Foreground="{ThemeResource AeroMutedTextBrush}" Glyph="&#xE8B7;" />
+                        <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" Text="No saved workspaces yet" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock
+                    x:Name="WorkspacesStatusText"
+                    Grid.Row="3"
+                    FontSize="12"
+                    Foreground="{ThemeResource AeroMutedTextBrush}"
+                    Text="Save the current tab set to reopen it later."
+                    TextWrapping="Wrap" />
+            </Grid>
+        </Border>
+
+        <!-- Password and autofill center. -->
+        <Border
+            x:Name="PasswordsPane"
+            Grid.Row="4"
+            Canvas.ZIndex="45"
+            Width="390"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="PasswordsPaneTransform" TranslateX="28" />
+            </Border.RenderTransform>
+
+            <Grid Padding="17,14,17,17">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="Passwords &amp; autofill" />
+                        <TextBlock x:Name="PasswordsStatusText" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Password profile is initializing" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource ChromeIconButtonStyle}" Click="ClosePasswordsButton_Click" AutomationProperties.Name="Close"
+                    ToolTipService.ToolTip="Close">
+                        <FontIcon FontSize="13" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <ScrollViewer Grid.Row="1" Margin="0,18,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16">
+                        <Border Padding="14" Background="{ThemeResource AeroRaisedSurfaceBrush}" BorderBrush="{ThemeResource AeroBorderBrush}" BorderThickness="1" CornerRadius="11">
+                            <StackPanel Spacing="12">
+                                <ToggleSwitch
+                                    x:Name="PasswordsSaveToggle"
+                                    Header="Enable Aero Vault"
+                                    OffContent="Disabled"
+                                    OnContent="Enabled"
+                                    Toggled="PasswordFeatureToggle_Toggled" />
+                                <ToggleSwitch
+                                    x:Name="PasswordsAutofillToggle"
+                                    Header="Autofill addresses and forms"
+                                    OffContent="Disabled"
+                                    OnContent="Enabled"
+                                    Toggled="PasswordFeatureToggle_Toggled" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="LOCAL DATA" />
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" TextWrapping="Wrap" Text="Aero Vault 2.3 protects sign-ins with Windows Hello and, when a TPM is available, a hardware-backed Node Lock bound to this device. Each protected operation is one-shot and decrypted key material is destroyed immediately." />
+                            <TextBlock x:Name="PasswordVaultCountText" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Checking protected sign-ins…" />
+                            <Button x:Name="ViewSavedPasswordsButton" Height="34" HorizontalAlignment="Left" Padding="14,0" Click="ViewSavedPasswordsButton_Click" Content="View saved passwords" />
+                            <Button x:Name="ClearSavedPasswordsButton" Height="34" HorizontalAlignment="Left" Padding="14,0" Click="ClearSavedPasswordsButton_Click" Content="Clear Aero Vault" />
+                            <Button x:Name="ClearAutofillDataButton" Height="34" HorizontalAlignment="Left" Padding="14,0" Click="ClearAutofillDataButton_Click" Content="Clear form autofill data" />
+                        </StackPanel>
+
+                        <Border Padding="13" Background="{ThemeResource AeroAddressBrush}" BorderBrush="{ThemeResource AeroSoftBorderBrush}" BorderThickness="1" CornerRadius="10">
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" TextWrapping="Wrap" Text="WebView2 password persistence is disabled to avoid a second credential database. Aero decrypts only the selected site entry, fills the top-level HTTPS page, then clears its temporary byte buffers." />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Chromium extensions lab. -->
+        <Border
+            x:Name="ExtensionsPane"
+            Grid.Row="4"
+            Canvas.ZIndex="45"
+            Width="420"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="ExtensionsPaneTransform" TranslateX="28" />
+            </Border.RenderTransform>
+
+            <Grid Padding="16,14,16,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="Extensions" />
+                        <TextBlock x:Name="ExtensionsStatusText" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Extension profile is initializing" />
+                    </StackPanel>
+                    <Button
+                        x:Name="RefreshExtensionsButton"
+                        Grid.Column="1"
+                        Margin="0,0,4,0"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="RefreshExtensionsButton_Click"
+                        AutomationProperties.Name="Refresh extensions"
+                    ToolTipService.ToolTip="Refresh extensions">
+                        <FontIcon FontSize="13" Glyph="&#xE72C;" />
+                    </Button>
+                    <Button Grid.Column="2" Style="{StaticResource ChromeIconButtonStyle}" Click="CloseExtensionsButton_Click" AutomationProperties.Name="Close"
+                    ToolTipService.ToolTip="Close">
+                        <FontIcon FontSize="13" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Margin="0,15,0,10" Spacing="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="ImportChromeExtensionsButton" Height="34" Padding="12,0" Click="ImportChromeExtensionsButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon FontSize="12" Glyph="&#xE8B5;" />
+                                <TextBlock Text="Import from Chrome" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Height="34" Padding="12,0" Click="InstallUnpackedExtensionButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon FontSize="12" Glyph="&#xE710;" />
+                                <TextBlock Text="Load unpacked" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            x:Name="ExtensionsSearchBox"
+                            Height="34"
+                            VerticalContentAlignment="Center"
+                            PlaceholderText="Search extensions"
+                            TextChanged="ExtensionsSearchBox_TextChanged" />
+                        <Button Grid.Column="1" Height="34" Padding="12,0" Click="OpenChromeWebStoreButton_Click" Content="Web Store" />
+                    </Grid>
+                </StackPanel>
+
+                <Border Grid.Row="2" Margin="0,0,0,12" Padding="12" Background="{ThemeResource AeroAddressBrush}" BorderBrush="{ThemeResource AeroSoftBorderBrush}" BorderThickness="1" CornerRadius="10">
+                    <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" TextWrapping="Wrap" Text="Open Web Store and choose Add to Chrome: Aero will check the package format, show its permissions, then unpack and install a compatible CRX into the current profile. Import from Chrome and unpacked Manifest V2/V3 folders are also supported." />
+                </Border>
+
+                <Grid Grid.Row="3">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="ExtensionsItemsPanel" Spacing="8" />
+                    </ScrollViewer>
+                    <StackPanel x:Name="ExtensionsEmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="7">
+                        <FontIcon HorizontalAlignment="Center" FontSize="30" Foreground="{ThemeResource AeroMutedTextBrush}" Glyph="&#xEA86;" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Text="No extensions installed" />
+                        <TextBlock x:Name="ExtensionsEmptyDescription" Width="300" HorizontalAlignment="Center" TextAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" TextWrapping="Wrap" Text="Install from Web Store, import from Chrome, or load an unpacked Chromium extension folder." />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Page zoom indicator. -->
+        <Border
+            x:Name="ZoomToast"
+            Grid.Row="4"
+            Canvas.ZIndex="59"
+            MinWidth="210"
+            Height="48"
+            Margin="0,12,14,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Padding="8,0"
+            Background="{ThemeResource AeroRaisedSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="ZoomToastTransform" TranslateY="-8" />
+            </Border.RenderTransform>
+            <Grid ColumnSpacing="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Width="32" Height="32" Style="{StaticResource ChromeIconButtonStyle}" Click="PageZoomOutButton_Click" AutomationProperties.Name="Zoom out"
+                    ToolTipService.ToolTip="Zoom out">
+                    <FontIcon FontSize="11" Glyph="&#xE738;" />
+                </Button>
+                <TextBlock x:Name="ZoomToastText" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="100%" />
+                <Button Grid.Column="2" Width="32" Height="32" Style="{StaticResource ChromeIconButtonStyle}" Click="PageZoomInButton_Click" AutomationProperties.Name="Zoom in"
+                    ToolTipService.ToolTip="Zoom in">
+                    <FontIcon FontSize="11" Glyph="&#xE710;" />
+                </Button>
+                <Button Grid.Column="3" Height="30" Padding="9,0" Click="PageZoomResetButton_Click" Content="Reset" />
+            </Grid>
+        </Border>
+
+        <!-- Download started/completed toast. -->
+        <Border
+            x:Name="DownloadToast"
+            Grid.Row="4"
+            Canvas.ZIndex="58"
+            Width="330"
+            MinHeight="66"
+            Margin="0,0,14,14"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Padding="14,10"
+            Background="{ThemeResource AeroRaisedSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="DownloadToastTransform" TranslateY="12" />
+            </Border.RenderTransform>
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <FontIcon VerticalAlignment="Center" FontSize="18" Glyph="&#xE896;" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock x:Name="DownloadToastTitle" FontSize="12" FontWeight="SemiBold" Text="Download started" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="DownloadToastSubtitle" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="Open downloads to see progress" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button x:Name="DownloadToastViewButton" Grid.Column="2" Height="30" Padding="11,0" Click="DownloadToastButton_Click" Content="View" />
+            </Grid>
+        </Border>
+
+        <!-- Crash recovery banner for the active tab. -->
+        <Border
+            x:Name="RecoveryBar"
+            Grid.Row="4"
+            Canvas.ZIndex="46"
+            Height="48"
+            Margin="10,10,10,0"
+            VerticalAlignment="Top"
+            Padding="14,0"
+            Background="{ThemeResource AeroRaisedSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Visibility="Collapsed">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <FontIcon VerticalAlignment="Center" FontSize="16" Glyph="&#xE783;" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="This tab stopped responding. Your other tabs are safe." />
+                <Button Grid.Column="2" Height="30" Padding="12,0" Click="ReloadCrashedTabButton_Click" Content="Reload" />
+                <Button Grid.Column="3" Width="30" Height="30" Style="{StaticResource ChromeIconButtonStyle}" Click="DismissRecoveryBarButton_Click">
+                    <FontIcon FontSize="11" Glyph="&#xE711;" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Command palette. -->
+        <Border
+            x:Name="CommandPaletteScrim"
+            Grid.RowSpan="5"
+            Canvas.ZIndex="70"
+            Background="{ThemeResource AeroScrimBrush}"
+            Opacity="0"
+            Visibility="Collapsed"
+            Tapped="CommandPaletteScrim_Tapped" />
+
+        <Border
+            x:Name="CommandPalette"
+            Grid.RowSpan="5"
+            Canvas.ZIndex="71"
+            Width="620"
+            MaxHeight="520"
+            Margin="0,58,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Padding="10"
+            Background="{ThemeResource AeroRaisedSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="15"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="CommandPaletteTransform" TranslateY="-10" ScaleX="0.985" ScaleY="0.985" />
+            </Border.RenderTransform>
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon VerticalAlignment="Center" Margin="8,0,0,0" FontSize="15" Glyph="&#xE721;" />
+                    <TextBox
+                        x:Name="CommandPaletteBox"
+                        Grid.Column="1"
+                        Height="40"
+                        Padding="4,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        PlaceholderText="Search tabs, history, bookmarks, or type a command"
+                        TextChanged="CommandPaletteBox_TextChanged"
+                        KeyDown="CommandPaletteBox_KeyDown" />
+                    <TextBlock Grid.Column="2" Margin="8,0" VerticalAlignment="Center" Foreground="{ThemeResource AeroMutedTextBrush}" FontSize="12" Text="ESC" />
+                </Grid>
+                <Border Grid.Row="1" Height="1" Background="{ThemeResource AeroSoftBorderBrush}" />
+                <ScrollViewer Grid.Row="2" MaxHeight="430" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="CommandPaletteResultsPanel" Spacing="3" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Settings pane. It is intentionally simple and fast. -->
+        <Border
+            x:Name="SettingsScrim"
+            Grid.RowSpan="5"
+            Canvas.ZIndex="50"
+            Background="{ThemeResource AeroScrimBrush}"
+            Opacity="0"
+            Visibility="Collapsed"
+            Tapped="SettingsScrim_Tapped" />
+
+        <Border
+            x:Name="SettingsPane"
+            Grid.RowSpan="5"
+            Canvas.ZIndex="51"
+            Width="330"
+            HorizontalAlignment="Right"
+            Background="{ThemeResource AeroSurfaceBrush}"
+            BorderBrush="{ThemeResource AeroBorderBrush}"
+            BorderThickness="1,0,0,0"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <CompositeTransform x:Name="SettingsPaneTransform" TranslateX="28" />
+            </Border.RenderTransform>
+
+            <Grid Padding="20,16,20,18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Settings" />
+                        <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" Text="Import, export and protected profile backups for Aero 0.22" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        Style="{StaticResource ChromeIconButtonStyle}"
+                        Click="CloseSettingsButton_Click"
+                        AutomationProperties.Name="Close settings"
+                    ToolTipService.ToolTip="Close settings">
+                        <FontIcon FontSize="14" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <ScrollViewer Grid.Row="1" Margin="0,22,0,16" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="20">
+                        <StackPanel Spacing="9">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="PERFORMANCE" />
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" Text="Maximum mode is the default and prioritizes foreground page speed." TextWrapping="Wrap" />
+                            <ComboBox x:Name="SpeedModeComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Maximum speed" />
+                                <ComboBoxItem Content="Balanced" />
+                                <ComboBoxItem Content="Compatibility" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <ToggleSwitch
+                            x:Name="TrackerBlockingToggle"
+                            Header="Aero Shield"
+                            OffContent="Ads and trackers allowed"
+                            OnContent="Block known ads and trackers" />
+
+                        <StackPanel Spacing="8">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="Shield engine" />
+                            <ComboBox x:Name="ShieldEngineSettingsComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Hybrid — recommended" />
+                                <ComboBoxItem Content="Advanced — uBlock Origin" />
+                                <ComboBoxItem Content="Native — Aero only" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="Shield mode" />
+                            <ComboBox x:Name="ShieldModeSettingsComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Standard" />
+                                <ComboBoxItem Content="Strict" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <ToggleSwitch
+                            x:Name="ShieldCosmeticSettingsToggle"
+                            Header="Hide ad placeholders"
+                            OffContent="Network blocking only"
+                            OnContent="Apply cosmetic filters" />
+
+                        <ToggleSwitch
+                            x:Name="ShieldAutoUpdateToggle"
+                            Header="Update filter lists automatically"
+                            OffContent="Manual updates"
+                            OnContent="Refresh every 24 hours" />
+
+                        <ToggleSwitch
+                            x:Name="ShieldYoutubeSettingsToggle"
+                            Header="YouTube clean mode"
+                            OffContent="No extra YouTube cleanup"
+                            OnContent="Remove promoted UI and activate Skip buttons" />
+
+                        <ToggleSwitch
+                            x:Name="CleanLinksToggle"
+                            Header="Clean tracking links"
+                            OffContent="Keep original links"
+                            OnContent="Remove common tracking parameters" />
+
+                        <StackPanel Spacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="MEMORY SAVER" />
+                            <TextBlock
+                                Foreground="{ThemeResource AeroMutedTextBrush}"
+                                Text="Reduce RAM without closing pages. Background tabs are frozen in place and resume without reloading."
+                                TextWrapping="Wrap" />
+                            <ComboBox x:Name="MemorySaverModeComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Maximum — freeze tabs sooner" />
+                                <ComboBoxItem Content="Balanced — freeze after 3 minutes" />
+                                <ComboBoxItem Content="Off" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <ToggleSwitch
+                            x:Name="SleepTabsToggle"
+                            Header="Sleep background tabs"
+                            OffContent="Keep every tab active"
+                            OnContent="Reduce inactive tabs automatically" />
+
+                        <ToggleSwitch
+                            x:Name="KeepAudioTabsAwakeToggle"
+                            Header="Keep audio tabs awake"
+                            OffContent="Background media may be paused"
+                            OnContent="Do not sleep tabs that are playing audio" />
+
+                        <Button
+                            Height="32"
+                            HorizontalAlignment="Left"
+                            Padding="14,0"
+                            Click="FreeMemoryNowButton_Click"
+                            Content="Freeze background tabs now" />
+
+                        <TextBlock
+                            x:Name="MemorySaverStatusText"
+                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                            FontSize="12"
+                            Text="Foreground performance is protected; background tabs will be reduced automatically."
+                            TextWrapping="Wrap" />
+
+                        <Border Height="1" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                        <StackPanel Spacing="9">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="PASSWORDS &amp; AUTOFILL" />
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" Text="Aero Vault 2.3 uses Windows Hello plus a TPM-backed Node Lock when supported. There is no persistent unlocked state: decrypted key material exists only for the current operation." TextWrapping="Wrap" />
+                            <ToggleSwitch
+                                x:Name="SavePasswordsToggle"
+                                Header="Enable Aero Vault"
+                                OffContent="Do not save new passwords"
+                                OnContent="Save and autofill sign-ins" />
+                            <ToggleSwitch
+                                x:Name="AutofillFormsToggle"
+                                Header="Autofill forms"
+                                OffContent="Do not save form details"
+                                OnContent="Suggest saved form details" />
+                            <Button Height="32" HorizontalAlignment="Left" Padding="14,0" Click="OpenPasswordsFromSettingsButton_Click" Content="Manage password data" />
+                        </StackPanel>
+
+                        <Border Height="1" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                        <StackPanel Spacing="9">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="APPEARANCE" />
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" Text="Choose how Aero looks." />
+                            <ComboBox x:Name="ThemeComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Dark" />
+                                <ComboBoxItem Content="Light" />
+                                <ComboBoxItem Content="Use Windows setting" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Border Height="1" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                        <StackPanel Spacing="9">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="NEW TAB" />
+                            <TextBlock Foreground="{ThemeResource AeroMutedTextBrush}" Text="Choose what opens in a new tab." />
+                            <ComboBox x:Name="NewTabComboBox" Style="{StaticResource SettingsComboBoxStyle}">
+                                <ComboBoxItem Content="Aero Home" />
+                                <ComboBoxItem Content="Google" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Border Height="1" Background="{ThemeResource AeroSoftBorderBrush}" />
+
+                        <ToggleSwitch
+                            x:Name="QuickLinksToggle"
+                            Header="Quick links on Aero Home"
+                            OffContent="Hidden"
+                            OnContent="Visible" />
+
+                        <ToggleSwitch
+                            x:Name="RestoreSessionToggle"
+                            Header="Restore tabs after restart"
+                            OffContent="Start fresh"
+                            OnContent="Restore session" />
+
+                        <TextBlock
+                            Foreground="{ThemeResource AeroMutedTextBrush}"
+                            FontSize="12"
+                            TextWrapping="Wrap"
+                            Text="Settings are stored locally on this computer. Aero does not sync them anywhere." />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                    <Button Height="34" Padding="14,0" Click="CancelSettingsButton_Click" Content="Cancel" />
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Click="SaveSettingsButton_Click" Content="Save changes" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Address bar history suggestions. The popup is positioned below AddressSurface in code. -->
+        <Popup
+            x:Name="AddressSuggestionsPopup"
+            IsLightDismissEnabled="False">
+            <Border
+                x:Name="AddressSuggestionsPanel"
+                Padding="6"
+                Background="{ThemeResource AeroRaisedSurfaceBrush}"
+                BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <ListView
+                    x:Name="AddressSuggestionsList"
+                    MaxHeight="360"
+                    IsItemClickEnabled="True"
+                    ItemClick="AddressSuggestionsList_ItemClick"
+                    PointerPressed="AddressSuggestionsList_PointerPressed"
+                    SelectionMode="Single"
+                    SingleSelectionFollowsFocus="False">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="MinHeight" Value="48" />
+                            <Setter Property="Padding" Value="8,5" />
+                            <Setter Property="Margin" Value="0,1" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="CornerRadius" Value="8" />
+                            <Setter Property="UseSystemFocusVisuals" Value="True" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Width="28"
+                                    Height="28"
+                                    VerticalAlignment="Center"
+                                    Background="{ThemeResource AeroAddressBrush}"
+                                    CornerRadius="8">
+                                    <FontIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Glyph="{Binding Glyph}" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                    <TextBlock
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding Title}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{ThemeResource AeroMutedTextBrush}"
+                                        Text="{Binding DisplayUrl}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+
+                                <Border
+                                    Grid.Column="2"
+                                    Margin="8,0,2,0"
+                                    Padding="7,3"
+                                    VerticalAlignment="Center"
+                                    Background="{ThemeResource AeroAddressBrush}"
+                                    CornerRadius="7">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{ThemeResource AeroMutedTextBrush}"
+                                        Text="{Binding SourceLabel}" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+        </Popup>
+
+        <!-- Full-window visual layer keeps a dragged tab above the page and shows Split View drop zones. -->
+        <Canvas
+            x:Name="TabDragOverlay"
+            Grid.RowSpan="5"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Canvas.ZIndex="1000"
+            IsHitTestVisible="False">
+            <Border
+                x:Name="SplitDropIndicator"
+                Canvas.ZIndex="50"
+                Background="{ThemeResource AeroHoverBrush}"
+                BorderBrush="{ThemeResource AeroAccentBrush}"
+                BorderThickness="2"
+                CornerRadius="12"
+                Opacity="0.92"
+                Visibility="Collapsed" />
+        </Canvas>
+
+    </Grid>
+</Window>

@@ -1,0 +1,97 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aero.Installer</RootNamespace>
+    <AssemblyName>AeroSetup</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AeroIcon.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <DebugType>embedded</DebugType>
+    <Version>0.24.0.0</Version>
+    <FileVersion>0.24.0.0</FileVersion>
+    <AssemblyVersion>0.24.0.0</AssemblyVersion>
+    <InformationalVersion>0.24.0.0</InformationalVersion>
+    <IncludeAeroSecurityDriverPanel
+      Condition="'$(IncludeAeroSecurityDriverPanel)' == ''">true</IncludeAeroSecurityDriverPanel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource
+      Include="$(AeroPayloadPath)"
+      Condition="'$(AeroPayloadPath)' != ''"
+      LogicalName="Aero.Installer.Payload.Aero.msix" />
+    <EmbeddedResource
+      Include="..\..\artifacts\msix\Aero-for-Friends\Aero_*.msix"
+      Condition="'$(AeroPayloadPath)' == ''"
+      LogicalName="Aero.Installer.Payload.Aero.msix" />
+    <EmbeddedResource
+      Include="$(AeroCertificatePath)"
+      Condition="'$(AeroCertificatePath)' != ''"
+      LogicalName="Aero.Installer.Payload.Aero.cer" />
+    <EmbeddedResource
+      Include="..\..\artifacts\msix\Aero-for-Friends\Aero.cer"
+      Condition="'$(AeroCertificatePath)' == ''"
+      LogicalName="Aero.Installer.Payload.Aero.cer" />
+    <EmbeddedResource
+      Include="$(AeroSecurityDriverPanelPayloadPath)"
+      Condition="'$(AeroSecurityDriverPanelPayloadPath)' != '' and Exists('$(AeroSecurityDriverPanelPayloadPath)')"
+      LogicalName="Aero.Installer.Payload.AeroSecurityDriverPanel.zip" />
+    <EmbeddedResource
+      Include="..\..\artifacts\driver-lab\x64\AeroSecurityDriverLab-x64-Debug.zip"
+      Condition="'$(AeroSecurityDriverPanelPayloadPath)' == '' and '$(IncludeAeroSecurityDriverPanel)' == 'true' and Exists('..\..\artifacts\driver-lab\x64\AeroSecurityDriverLab-x64-Debug.zip')"
+      LogicalName="Aero.Installer.Payload.AeroSecurityDriverPanel.zip" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\AeroIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="Assets\AeroIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Old WinForms UI is excluded during cumulative overlay updates. -->
+  <ItemGroup>
+    <Compile Remove="AeroControls.cs" />
+    <Compile Remove="InstallerForm.cs" />
+    <Compile Remove="Program.cs" />
+  </ItemGroup>
+
+  <Target Name="ValidateInstallerPayload" BeforeTargets="Publish">
+    <Error
+      Condition="'@(EmbeddedResource->WithMetadataValue('LogicalName', 'Aero.Installer.Payload.Aero.msix'))' == ''"
+      Text="Build the Aero MSIX before publishing Aero.Installer, or pass AeroPayloadPath." />
+    <Error
+      Condition="'@(EmbeddedResource->WithMetadataValue('LogicalName', 'Aero.Installer.Payload.Aero.cer'))' == ''"
+      Text="Aero.cer is required for the WinUI 3 installer." />
+    <Error
+      Condition="'$(AeroSecurityDriverPanelPayloadPath)' != '' and !Exists('$(AeroSecurityDriverPanelPayloadPath)')"
+      Text="The Aero Security Driver Panel payload was not found: $(AeroSecurityDriverPanelPayloadPath)" />
+    <Error
+      Condition="'$(IncludeAeroSecurityDriverPanel)' == 'true' and '$(AeroSecurityDriverPanelPayloadPath)' == '' and !Exists('..\..\artifacts\driver-lab\x64\AeroSecurityDriverLab-x64-Debug.zip')"
+      Text="Build the Aero Security Driver Panel package first, or pass AeroSecurityDriverPanelPayloadPath." />
+  </Target>
+</Project>

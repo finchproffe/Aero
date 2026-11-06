@@ -1,0 +1,215 @@
+<Application
+    x:Class="Aero.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AeroWindowBrush" Color="#17191D" />
+                    <SolidColorBrush x:Key="AeroTitleBarBrush" Color="#202227" />
+                    <SolidColorBrush x:Key="AeroToolbarBrush" Color="#292C32" />
+                    <SolidColorBrush x:Key="AeroActiveTabBrush" Color="#292C32" />
+                    <SolidColorBrush x:Key="AeroTabHoverBrush" Color="#30343B" />
+                    <SolidColorBrush x:Key="AeroTabOutlineBrush" Color="#3A4248" />
+                    <SolidColorBrush x:Key="AeroTabIndicatorBrush" Color="#8ABEFF" />
+                    <SolidColorBrush x:Key="AeroAddressBrush" Color="#1C1F24" />
+                    <SolidColorBrush x:Key="AeroAddressFocusedBrush" Color="#20242B" />
+                    <SolidColorBrush x:Key="AeroSurfaceBrush" Color="#202329" />
+                    <SolidColorBrush x:Key="AeroRaisedSurfaceBrush" Color="#292D34" />
+                    <SolidColorBrush x:Key="AeroHoverBrush" Color="#373D46" />
+                    <SolidColorBrush x:Key="AeroPressedBrush" Color="#424A55" />
+                    <SolidColorBrush x:Key="AeroBorderBrush" Color="#515A67" />
+                    <SolidColorBrush x:Key="AeroSoftBorderBrush" Color="#3B424C" />
+                    <SolidColorBrush x:Key="AeroTextBrush" Color="#F1F3F7" />
+                    <SolidColorBrush x:Key="AeroSecondaryTextBrush" Color="#C3CAD5" />
+                    <SolidColorBrush x:Key="AeroMutedTextBrush" Color="#A5AFBE" />
+                    <SolidColorBrush x:Key="AeroAccentBrush" Color="#A8C7FA" />
+                    <SolidColorBrush x:Key="AeroDangerBrush" Color="#E25A5A" />
+                    <SolidColorBrush x:Key="AeroScrimBrush" Color="#99000000" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#30373D" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3A4249" />
+                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F1F3F4" />
+                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#F1F3F4" />
+                
+                    <SolidColorBrush x:Key="AeroOnAccentBrush" Color="#142540" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AeroWindowBrush" Color="#F7F8FA" />
+                    <SolidColorBrush x:Key="AeroTitleBarBrush" Color="#E4E8F0" />
+                    <SolidColorBrush x:Key="AeroToolbarBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AeroActiveTabBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AeroTabHoverBrush" Color="#D5DDE9" />
+                    <SolidColorBrush x:Key="AeroTabOutlineBrush" Color="#C8D0D6" />
+                    <SolidColorBrush x:Key="AeroTabIndicatorBrush" Color="#2D72D9" />
+                    <SolidColorBrush x:Key="AeroAddressBrush" Color="#F0F3F8" />
+                    <SolidColorBrush x:Key="AeroAddressFocusedBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AeroSurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AeroRaisedSurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AeroHoverBrush" Color="#E8EDF5" />
+                    <SolidColorBrush x:Key="AeroPressedBrush" Color="#DAE2EE" />
+                    <SolidColorBrush x:Key="AeroBorderBrush" Color="#8995A7" />
+                    <SolidColorBrush x:Key="AeroSoftBorderBrush" Color="#DCE2EB" />
+                    <SolidColorBrush x:Key="AeroTextBrush" Color="#20242C" />
+                    <SolidColorBrush x:Key="AeroSecondaryTextBrush" Color="#465164" />
+                    <SolidColorBrush x:Key="AeroMutedTextBrush" Color="#566274" />
+                    <SolidColorBrush x:Key="AeroAccentBrush" Color="#1B57B1" />
+                    <SolidColorBrush x:Key="AeroDangerBrush" Color="#C93D3D" />
+                    <SolidColorBrush x:Key="AeroScrimBrush" Color="#66000000" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#E5E9EC" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D7DDE1" />
+                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1C2125" />
+                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1C2125" />
+                
+                    <SolidColorBrush x:Key="AeroOnAccentBrush" Color="#FFFFFF" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="AeroWindowBrush" Color="#17191D" />
+                    <SolidColorBrush x:Key="AeroTitleBarBrush" Color="#202227" />
+                    <SolidColorBrush x:Key="AeroToolbarBrush" Color="#292C32" />
+                    <SolidColorBrush x:Key="AeroActiveTabBrush" Color="#292C32" />
+                    <SolidColorBrush x:Key="AeroTabHoverBrush" Color="#30343B" />
+                    <SolidColorBrush x:Key="AeroTabOutlineBrush" Color="#3A4248" />
+                    <SolidColorBrush x:Key="AeroTabIndicatorBrush" Color="#8ABEFF" />
+                    <SolidColorBrush x:Key="AeroAddressBrush" Color="#1C1F24" />
+                    <SolidColorBrush x:Key="AeroAddressFocusedBrush" Color="#20242B" />
+                    <SolidColorBrush x:Key="AeroSurfaceBrush" Color="#202329" />
+                    <SolidColorBrush x:Key="AeroRaisedSurfaceBrush" Color="#292D34" />
+                    <SolidColorBrush x:Key="AeroHoverBrush" Color="#373D46" />
+                    <SolidColorBrush x:Key="AeroPressedBrush" Color="#424A55" />
+                    <SolidColorBrush x:Key="AeroBorderBrush" Color="#515A67" />
+                    <SolidColorBrush x:Key="AeroSoftBorderBrush" Color="#3B424C" />
+                    <SolidColorBrush x:Key="AeroTextBrush" Color="#F1F3F7" />
+                    <SolidColorBrush x:Key="AeroSecondaryTextBrush" Color="#C3CAD5" />
+                    <SolidColorBrush x:Key="AeroMutedTextBrush" Color="#A5AFBE" />
+                    <SolidColorBrush x:Key="AeroAccentBrush" Color="#A8C7FA" />
+                    <SolidColorBrush x:Key="AeroDangerBrush" Color="#E25A5A" />
+                    <SolidColorBrush x:Key="AeroScrimBrush" Color="#99000000" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#30373D" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3A4249" />
+                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F1F3F4" />
+                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#F1F3F4" />
+                
+                    <SolidColorBrush x:Key="AeroOnAccentBrush" Color="#142540" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="AeroOnAccentBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="AeroWindowBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="AeroTitleBarBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="AeroToolbarBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="AeroActiveTabBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="AeroTabHoverBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="AeroTabOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="AeroTabIndicatorBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="AeroAddressBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="AeroAddressFocusedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="AeroSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="AeroRaisedSurfaceBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="AeroHoverBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="AeroPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="AeroBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="AeroSoftBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="AeroTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="AeroSecondaryTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="AeroMutedTextBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="AeroAccentBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="AeroDangerBrush" Color="{ThemeResource SystemColorHotlightColor}" />
+                    <SolidColorBrush x:Key="AeroScrimBrush" Color="Transparent" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <FontFamily x:Key="AeroFontFamily">ms-appx:///Assets/Fonts/Manrope.ttf#Manrope</FontFamily>
+            <!-- Overrides the WinUI default so every control template picks up the Aero font. -->
+            <!-- Same URI as AeroFontFamily; the XAML compiler rejects a StaticResource alias here. -->
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Manrope.ttf#Manrope</FontFamily>
+
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AeroFontFamily}" />
+            </Style>
+
+            <Style x:Key="ChromeIconButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="34" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Foreground" Value="{ThemeResource AeroTextBrush}" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+
+            <Style x:Key="TabCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource ChromeIconButtonStyle}">
+                <Setter Property="Width" Value="22" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="CornerRadius" Value="11" />
+            </Style>
+
+            <Style x:Key="AddressTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Height" Value="32" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="4,3,8,3" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="0" />
+                <Setter Property="Foreground" Value="{ThemeResource AeroTextBrush}" />
+                <Setter Property="PlaceholderForeground" Value="{ThemeResource AeroMutedTextBrush}" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FontFamily" Value="{StaticResource AeroFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="SelectionHighlightColor" Value="{ThemeResource AeroTabIndicatorBrush}" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+
+            <Style x:Key="FindTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource AddressTextBoxStyle}">
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Padding" Value="8,3,6,3" />
+                <Setter Property="Background" Value="{ThemeResource AeroAddressBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource AeroBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="7" />
+            </Style>
+
+            <Style x:Key="MenuActionButtonStyle" TargetType="Button">
+                <Setter Property="Height" Value="34" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="10,0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="7" />
+                <Setter Property="Foreground" Value="{ThemeResource AeroTextBrush}" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+
+            <Style x:Key="SettingsComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="MinHeight" Value="34" />
+            </Style>
+
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Padding" Value="16,0" />
+                <Setter Property="CornerRadius" Value="7" />
+                <Setter Property="Background" Value="{ThemeResource AeroAccentBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource AeroOnAccentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
