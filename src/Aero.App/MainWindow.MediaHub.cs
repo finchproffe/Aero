@@ -169,6 +169,18 @@ public sealed partial class MainWindow
                 return;
             }
 
+            if (string.Equals(messageType, "aero-store-install", StringComparison.Ordinal))
+            {
+                string extensionId = ReadString(root, "id");
+                // Only the official store page may ask, and Aero still shows its own confirmation.
+                if (IsStoreInstallRequest(args.Source, extensionId))
+                {
+                    RootGrid.DispatcherQueue.TryEnqueue(async () => await InstallStoreExtensionAsync(state, extensionId));
+                }
+
+                return;
+            }
+
             if (messageType is not null &&
                 TryHandleSettingsMessage(state, root, messageType))
             {

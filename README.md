@@ -22,6 +22,8 @@
 
 - **Instant and quiet.** No news feed, ads, account requirement or telemetry. Background tabs sleep, resource use is visible per tab, and sessions restore lazily.
 - **You stay in control.** Per-site permissions, built-in Shield blocker, workspaces, tab groups, split view, containers and private windows.
+- **Moving in is easy.** Import from Chrome, Edge, Yandex Browser, Brave, Vivaldi, Opera and Firefox; DRM video (Widevine, PlayReady), passkeys and one-click page translation work out of the box.
+- **Free sync, no account.** Bookmarks and passwords travel between your PCs through a cloud folder you already have. See [Sync without a server](#sync-without-a-server).
 - **Built against session theft.** Most account takeovers today don't need your password: a stealer copies the browser's cookies and replays your sessions. Aero is designed so that the usual way of doing that stops working.
 
 ## Protection against info-stealers
@@ -105,6 +107,20 @@ Every source file of Aero Vault starts with the notice **"Vault is Powered by Ae
 - **Development builds.** Without the MSIX there is no key service, so the cookie vault stays off unless Windows Hello protection is turned on.
 
 Found a weakness? See [SECURITY.md](SECURITY.md).
+
+## Sync without a server
+
+Aero has no sync server and no account. Pick a folder that your own cloud client already syncs (OneDrive comes with Windows; Yandex Disk, Google Drive, Dropbox and Syncthing work too) and choose a sync passphrase.
+
+| | |
+|---|---|
+| 🔑 **End-to-end encrypted** | Everything in the folder is AES-256-GCM encrypted with keys derived from your passphrase (PBKDF2-SHA256, 600,000 rounds). Neither the cloud nor the Aero project can read it. |
+| 📚 **Bookmarks** | Sync on their own every couple of minutes, deletions included. |
+| 🔐 **Passwords** | Sync on request (*Settings → Import and backups → Sync passwords*), confirmed with the passphrase and Windows Hello. The password key is never stored on the PC, so Aero Vault keeps its "never left unlocked" promise. |
+| 💻 **New PC recovery** | Point a fresh install at the same folder and passphrase, sync passwords, and your vault comes back. A PC with an empty vault refills itself and never wipes the others. |
+| ☁️ **No conflicts** | Each PC writes only its own file and reads the others', so the cloud never sees two writers on one file. |
+
+Not synced yet: history, open tabs and bookmark order. There is no phone app.
 
 ## Build
 

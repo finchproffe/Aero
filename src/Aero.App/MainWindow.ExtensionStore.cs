@@ -18,6 +18,93 @@ public sealed partial class MainWindow
     private static readonly HttpClient ExtensionPackageClient =
         CreateExtensionPackageClient();
 
+    // Chrome Web Store only: "Add to Chrome" goes to Aero instead of WebView2's own installer,
+    // whose prompt is followed by a download that WebView2 itself interrupts.
+    private const string ExtensionStoreBridgeScript = """
+        (() => {
+          if (location.hostname !== 'chromewebstore.google.com' ||
+              !window.chrome || !chrome.webstorePrivate || !chrome.webview) {
+            return;
+          }
+          chrome.webstorePrivate.beginInstallWithManifest3 = (details, callback) => {
+            chrome.webview.postMessage({ type: 'aero-store-install', id: String((details && details.id) || '') });
+            // 'user_cancelled' quietly resets the store button; Aero's own dialog takes over.
+            if (typeof callback === 'function') {
+              setTimeout(() => callback('user_cancelled'), 0);
+              return undefined;
+            }
+            return Promise.resolve('user_cancelled');
+          };
+        })();
+        """;
+
+    private readonly HashSet<string> _storeInstallsInProgress = new(StringComparer.Ordinal);
+
+    private async Task RegisterExtensionStoreBridgeAsync(BrowserTabState state)
+    {
+        if (state.Browser.CoreWebView2 is not CoreWebView2 core)
+        {
+            return;
+        }
+
+        try
+        {
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(ExtensionStoreBridgeScript);
+        }
+        catch
+        {
+            // The controller may be replaced while a discarded tab is restored.
+        }
+    }
+
+    private static bool IsStoreInstallRequest(string? source, string extensionId) =>
+        Uri.TryCreate(source, UriKind.Absolute, out Uri? page) &&
+        page.Scheme == Uri.UriSchemeHttps &&
+        page.Host.Equals("chromewebstore.google.com", StringComparison.OrdinalIgnoreCase) &&
+        extensionId.Length == 32 &&
+        extensionId.All(character => character is >= 'a' and <= 'p');
+
+    /// <summary>Downloads the package from Google's delivery server and asks with Aero's dialog.</summary>
+    private async Task InstallStoreExtensionAsync(BrowserTabState state, string extensionId)
+    {
+        if (_isPrivateWindow)
+        {
+            await ShowErrorDialogAsync(
+                "Extension installation is unavailable",
+                "Install extensions from a regular Aero window. Private windows use a temporary WebView2 profile.");
+            return;
+        }
+
+        // A double click on "Add to Chrome" must not open two dialogs.
+        if (!_storeInstallsInProgress.Add(extensionId))
+        {
+            return;
+        }
+
+        try
+        {
+            string downloadFolder = Path.Combine(_browserProfile.StorageRoot, "ExtensionDownloads");
+            Directory.CreateDirectory(downloadFolder);
+            string packagePath = Path.Combine(downloadFolder, $"store-{Guid.NewGuid():N}.crx");
+            ExtensionsStatusText.Text = "Downloading extension package from the official store…";
+            if (!await TryDownloadExtensionPackageAsync(ChromeStoreCrxUri(extensionId), packagePath))
+            {
+                TryDeleteFile(packagePath);
+                ExtensionsStatusText.Text = "Extension download failed.";
+                await ShowErrorDialogAsync(
+                    "Could not download extension",
+                    "The official Chrome Web Store delivery server did not return the extension package.");
+                return;
+            }
+
+            await InstallDownloadedStorePackageAsync(packagePath, state, extensionId);
+        }
+        finally
+        {
+            _storeInstallsInProgress.Remove(extensionId);
+        }
+    }
+
     private void CleanupPendingExtensionDownloads()
     {
         string folder = Path.Combine(
@@ -128,6 +215,14 @@ public sealed partial class MainWindow
             }
         }
 
+        await InstallDownloadedStorePackageAsync(packagePath, sourceTab, GetExpectedStoreExtensionId(sourceTab));
+    }
+
+    private async Task InstallDownloadedStorePackageAsync(
+        string packagePath,
+        BrowserTabState sourceTab,
+        string? expectedExtensionId)
+    {
         string stagingRoot = Path.Combine(
             Path.GetTempPath(),
             "Aero",
@@ -172,7 +267,6 @@ public sealed partial class MainWindow
             CoreWebView2BrowserExtension extension =
                 await profile.AddBrowserExtensionAsync(managedPath);
 
-            string? expectedExtensionId = GetExpectedStoreExtensionId(sourceTab);
             if (!string.IsNullOrWhiteSpace(expectedExtensionId) &&
                 !extension.Id.Equals(expectedExtensionId, StringComparison.OrdinalIgnoreCase))
             {
@@ -364,16 +458,16 @@ public sealed partial class MainWindow
                 "chrome.google.com",
                 StringComparison.OrdinalIgnoreCase))
         {
-            string request = Uri.EscapeDataString(
-                $"id={extensionId}&installsource=ondemand&uc");
-            candidates.Add(new Uri(
-                "https://clients2.google.com/service/update2/crx" +
-                "?response=redirect" +
-                "&prodversion=150.0.0.0" +
-                "&acceptformat=crx2,crx3" +
-                $"&x={request}"));
+            candidates.Add(ChromeStoreCrxUri(extensionId));
         }
     }
+
+    private static Uri ChromeStoreCrxUri(string extensionId) => new(
+        "https://clients2.google.com/service/update2/crx" +
+        "?response=redirect" +
+        "&prodversion=150.0.0.0" +
+        "&acceptformat=crx2,crx3" +
+        $"&x={Uri.EscapeDataString($"id={extensionId}&installsource=ondemand&uc")}");
 
     private static bool TryGetStoreExtensionId(Uri? storePage, out string extensionId)
     {

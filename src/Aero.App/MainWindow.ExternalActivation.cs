@@ -82,8 +82,11 @@ public sealed partial class MainWindow
 
     private static bool IsSupportedExternalUri(Uri uri)
     {
+        // file: only reaches here from file-type activation (.html, .pdf opened in Explorer);
+        // Windows delivers protocol activation for the registered http/https schemes alone.
         return uri.IsAbsoluteUri &&
             (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
-             uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
+             uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+             uri.IsFile);
     }
 }

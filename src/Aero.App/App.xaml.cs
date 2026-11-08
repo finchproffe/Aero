@@ -16,6 +16,9 @@ public partial class App : Application
     {
         // Before any WebView2, vault or broker state exists in this process.
         Aero.App.Security.ProcessAccessGuard.HardenCurrentProcess();
+        // Logged only: WinUI still decides whether the process survives.
+        UnhandledException += (_, args) => AppHealth.RecordCrash(args.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => AppHealth.RecordCrash(args.ExceptionObject as Exception);
         InitializeComponent();
     }
 
@@ -109,6 +112,17 @@ public partial class App : Application
             args.Data is ProtocolActivatedEventArgs protocolArgs)
         {
             await window.OpenExternalUriAsync(protocolArgs.Uri);
+        }
+        else if (args.Kind == ExtendedActivationKind.File &&
+                 args.Data is FileActivatedEventArgs fileArgs)
+        {
+            foreach (Windows.Storage.IStorageItem item in fileArgs.Files)
+            {
+                if (item is Windows.Storage.StorageFile)
+                {
+                    await window.OpenExternalUriAsync(new Uri(item.Path));
+                }
+            }
         }
     }
 }

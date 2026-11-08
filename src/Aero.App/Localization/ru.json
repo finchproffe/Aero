@@ -1,4 +1,6 @@
 {
+  "Notice.CrashedLastTime": "Aero аварийно завершился в прошлый раз",
+  "Notice.UpdateAvailable": "Доступна Aero {0}",
   "Notice.CookieVaultLocked": "Входы на сайты не разблокированы",
   "Ui.Work": "Работа",
   "Ui.Personal": "Личное",
@@ -247,6 +249,7 @@
   "Ui.Save changes": "Сохранить изменения",
   "Ui.Save current tabs": "Сохранить текущие вкладки",
   "Ui.Save page as PDF": "Сохранить страницу как PDF",
+  "Ui.Translate page": "Перевести страницу",
   "Ui.Search": "Поиск",
   "Ui.Search extensions": "Поиск расширений",
   "Ui.Search Google or enter an address": "Поиск Google или адрес",

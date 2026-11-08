@@ -1298,6 +1298,17 @@
                                         </Grid>
                                     </Button>
 
+                                    <Button x:Name="TranslatePageMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="TranslatePageMenuButton_Click">
+                                        <Grid Width="214">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon FontSize="14" Glyph="&#xF2B7;" />
+                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Translate page" />
+                                        </Grid>
+                                    </Button>
+
                                     <Button x:Name="SavePdfMenuButton" Style="{StaticResource MenuActionButtonStyle}" Click="SavePdfMenuButton_Click">
                                         <Grid Width="214">
                                             <Grid.ColumnDefinitions>

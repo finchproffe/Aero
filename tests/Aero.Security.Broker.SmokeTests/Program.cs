@@ -338,6 +338,67 @@ Require(rejected(() => CookieVaultKey.Unwrap("unused", [(byte)'X', 1, 2], IntPtr
 Require(CookieVaultKey.IsHelloWrapped([(byte)'H', 1]) && !CookieVaultKey.IsHelloWrapped([(byte)'A', 1]),
     "The cookie vault key mode byte is misread.");
 
+// Folder sync: edits and deletions travel by timestamp, an emptied store never wipes the
+// other devices, the binary format round-trips, and a wrong passphrase is refused.
+{
+    byte[] P(string text) => Encoding.UTF8.GetBytes(text);
+    List<SyncItem> published = [new("a", 100, false, P("1")), new("b", 100, false, P("2"))];
+    List<SyncItem> stamped = FolderSync.Stamp(
+        new Dictionary<string, byte[]> { ["a"] = P("1"), ["c"] = P("3") }, published, 200);
+    Require(stamped.Single(i => i.Key == "a").ModifiedAt == 100 &&
+            stamped.Single(i => i.Key == "c").ModifiedAt == 200 &&
+            stamped.Single(i => i.Key == "b") is { Deleted: true, ModifiedAt: 200 },
+        "Sync stamping lost an unchanged time, a new item or a deletion.");
+    Require(FolderSync.Stamp(new Dictionary<string, byte[]>(), published, 200).Count == 0,
+        "An emptied local store turned into deletions that would wipe the other devices.");
+
+    Dictionary<string, SyncItem> merged = FolderSync.Merge(
+    [
+        stamped,
+        [new("a", 300, false, P("edited")), new("b", 150, false, P("stale"))]
+    ]);
+    Require(merged["a"].Payload.SequenceEqual(P("edited")) && merged["b"].Deleted && merged["c"].ModifiedAt == 200,
+        "Sync merge did not pick the newest change per key.");
+    Require(FolderSync.Merge([[new("x", 5, false, P("v"))], [new("x", 5, true, [])]])["x"].Deleted,
+        "A deletion tied with an edit must win so it cannot resurrect.");
+
+    List<SyncItem> roundTrip = FolderSync.Deserialize(FolderSync.Serialize(stamped));
+    Require(roundTrip.Count == stamped.Count &&
+            roundTrip.Zip(stamped).All(p => p.First.Key == p.Second.Key && p.First.ModifiedAt == p.Second.ModifiedAt &&
+                                            p.First.Deleted == p.Second.Deleted && p.First.Payload.SequenceEqual(p.Second.Payload)),
+        "The sync format did not round-trip.");
+    bool truncatedRejected = false;
+    try { FolderSync.Deserialize(FolderSync.Serialize(stamped).AsSpan(0, 7)); }
+    catch (InvalidDataException) { truncatedRejected = true; }
+    Require(truncatedRejected, "A truncated sync file was accepted.");
+
+    string syncFolder = Path.Combine(Path.GetTempPath(), "aero-sync-test-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(syncFolder);
+    try
+    {
+        using (FolderSync.Keys firstKeys = FolderSync.OpenOrCreate(syncFolder, "correct horse battery"))
+        {
+            FolderSync.WriteFile(FolderSync.FilePath(syncFolder, "dev1", FolderSync.LibraryExtension),
+                FolderSync.Context(FolderSync.LibraryExtension, "dev1"), firstKeys.Library, stamped);
+        }
+
+        using (FolderSync.Keys secondKeys = FolderSync.OpenOrCreate(syncFolder, "correct horse battery"))
+        {
+            Require(FolderSync.ReadOthers(syncFolder, "dev2", FolderSync.LibraryExtension, secondKeys.Library).Single().Count == stamped.Count,
+                "A second device could not read the first device's sync file.");
+            Require(FolderSync.ReadOthers(syncFolder, "dev2", FolderSync.LibraryExtension, secondKeys.Passwords).Count == 0,
+                "The password key opened a library file: the two keys are not independent.");
+        }
+
+        Require(rejected(() => FolderSync.OpenOrCreate(syncFolder, "wrong passphrase!!").Dispose()),
+            "A wrong sync passphrase was accepted.");
+    }
+    finally
+    {
+        Directory.Delete(syncFolder, recursive: true);
+    }
+}
+
 // Process guard: after the DACL write a same-user process can no longer open the target
 // for memory access, but can still wait on it (WebView2 and the broker rely on that).
 using (Process guarded = Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1")

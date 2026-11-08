@@ -841,6 +841,7 @@ public sealed partial class MainWindow
         PageZoomResetButton.IsEnabled = available && Math.Abs(factor - 1.0) > 0.001;
         PrintPageMenuButton.IsEnabled = available;
         SavePdfMenuButton.IsEnabled = available;
+        TranslatePageMenuButton.IsEnabled = available;
         CaptureVisibleMenuButton.IsEnabled = available && !_pageCaptureInProgress;
         CaptureFullPageMenuButton.IsEnabled = available && !_pageCaptureInProgress;
     }
@@ -849,6 +850,25 @@ public sealed partial class MainWindow
     {
         AeroMenuFlyout.Hide();
         ShowPrintUi();
+    }
+
+    private void TranslatePageMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        AeroMenuFlyout.Hide();
+        if (ActiveTab?.Browser.CoreWebView2 is not CoreWebView2 core ||
+            !Uri.TryCreate(core.Source, UriKind.Absolute, out Uri? page) ||
+            page.Scheme != Uri.UriSchemeHttps && page.Scheme != Uri.UriSchemeHttp)
+        {
+            return;
+        }
+
+        // WebView2 ships without Edge's translator; Google's page proxy is free and needs no key.
+        // shortcut: the proxy fetches the page without the user's cookies, so signed-in pages
+        // come back logged out; switch to an in-page translation API if that becomes a problem.
+        string language = string.IsNullOrWhiteSpace(_settings.AppLanguage) ? "en" : _settings.AppLanguage;
+        core.Navigate(
+            "https://translate.google.com/translate?sl=auto&tl=" + Uri.EscapeDataString(language) +
+            "&u=" + Uri.EscapeDataString(page.AbsoluteUri));
     }
 
     private void PrintPageAccelerator_Invoked(

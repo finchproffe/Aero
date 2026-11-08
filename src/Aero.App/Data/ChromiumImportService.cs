@@ -11,7 +11,13 @@ namespace Aero.App.Data;
 internal enum ChromiumBrowserKind
 {
     Chrome,
-    Edge
+    Edge,
+    Yandex,
+    Brave,
+    Vivaldi,
+    Opera,
+    // Not Chromium: only bookmarks and history are read, from places.sqlite.
+    Firefox
 }
 
 internal sealed record ChromiumImportOptions(
@@ -54,12 +60,21 @@ internal static partial class ChromiumImportService
     private static readonly DateTimeOffset ChromiumEpoch =
         new(1601, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    public static string GetBrowserRoot(ChromiumBrowserKind browser) =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            browser == ChromiumBrowserKind.Edge ? "Microsoft" : "Google",
-            browser == ChromiumBrowserKind.Edge ? "Edge" : "Chrome",
-            "User Data");
+    public static string GetBrowserRoot(ChromiumBrowserKind browser)
+    {
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return browser switch
+        {
+            ChromiumBrowserKind.Edge => Path.Combine(local, "Microsoft", "Edge", "User Data"),
+            ChromiumBrowserKind.Yandex => Path.Combine(local, "Yandex", "YandexBrowser", "User Data"),
+            ChromiumBrowserKind.Brave => Path.Combine(local, "BraveSoftware", "Brave-Browser", "User Data"),
+            ChromiumBrowserKind.Vivaldi => Path.Combine(local, "Vivaldi", "User Data"),
+            ChromiumBrowserKind.Opera => Path.Combine(roaming, "Opera Software", "Opera Stable"),
+            ChromiumBrowserKind.Firefox => Path.Combine(roaming, "Mozilla", "Firefox", "Profiles"),
+            _ => Path.Combine(local, "Google", "Chrome", "User Data")
+        };
+    }
 
     public static Task<ChromiumImportResult> ImportAsync(
         ChromiumBrowserKind browser,
@@ -83,7 +98,11 @@ internal static partial class ChromiumImportService
                 $"{browser} profile data was not found at {browserRoot}.");
         }
 
-        List<string> profileFolders = EnumerateProfiles(browserRoot).ToList();
+        List<string> profileFolders = browser == ChromiumBrowserKind.Firefox
+            ? Directory.EnumerateDirectories(browserRoot)
+                .Where(folder => File.Exists(Path.Combine(folder, "places.sqlite")))
+                .ToList()
+            : EnumerateProfiles(browserRoot).ToList();
         if (profileFolders.Count == 0)
         {
             throw new InvalidDataException($"{browser} does not contain a Default or Profile folder.");
@@ -99,6 +118,11 @@ internal static partial class ChromiumImportService
         foreach (string profileFolder in profileFolders)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (browser == ChromiumBrowserKind.Firefox)
+            {
+                ReadFirefoxPlaces(Path.Combine(profileFolder, "places.sqlite"), options, bookmarks, history, cancellationToken);
+                continue;
+            }
 
             if (options.Bookmarks)
             {
@@ -136,7 +160,7 @@ internal static partial class ChromiumImportService
             settings.Save();
         }
 
-        IReadOnlyList<ExtensionPackage> extensions = options.Extensions
+        IReadOnlyList<ExtensionPackage> extensions = options.Extensions && browser != ChromiumBrowserKind.Firefox
             ? ExtensionCatalog.ScanChromiumProfiles(browserRoot)
             : [];
 
@@ -152,6 +176,12 @@ internal static partial class ChromiumImportService
 
     private static IEnumerable<string> EnumerateProfiles(string browserRoot)
     {
+        // Opera keeps its single profile directly in the browser folder.
+        if (File.Exists(Path.Combine(browserRoot, "Bookmarks")) || File.Exists(Path.Combine(browserRoot, "History")))
+        {
+            yield return browserRoot;
+        }
+
         string defaultProfile = Path.Combine(browserRoot, "Default");
         if (Directory.Exists(defaultProfile))
         {
@@ -286,6 +316,108 @@ internal static partial class ChromiumImportService
             TryDelete(temporaryPath);
         }
     }
+
+    private static void ReadFirefoxPlaces(
+        string path,
+        ChromiumImportOptions options,
+        List<BookmarkEntry> bookmarks,
+        List<HistoryEntry> history,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(path) || !options.Bookmarks && !options.History)
+        {
+            return;
+        }
+
+        string temporaryPath = Path.Combine(Path.GetTempPath(), $"Aero-Firefox-Places-{Guid.NewGuid():N}.sqlite");
+        try
+        {
+            try
+            {
+                CopySharedFile(path, temporaryPath);
+                // Unflushed recent visits and bookmarks can still sit in the write-ahead log.
+                if (File.Exists(path + "-wal"))
+                {
+                    CopySharedFile(path + "-wal", temporaryPath + "-wal");
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Unlike Chromium, a running Firefox locks places.sqlite against any reader.
+                throw new IOException("Firefox открыт и не даёт прочитать закладки. Закройте Firefox и повторите импорт.", exception);
+            }
+
+            using SqliteConnection connection = new(new SqliteConnectionStringBuilder
+            {
+                DataSource = temporaryPath,
+                Pooling = false
+            }.ToString());
+            connection.Open();
+            const string WebOnly = "(p.url LIKE 'http://%' OR p.url LIKE 'https://%')";
+            if (options.Bookmarks)
+            {
+                using SqliteCommand command = connection.CreateCommand();
+                command.CommandText =
+                    "SELECT p.url, COALESCE(NULLIF(b.title, ''), p.title), b.dateAdded FROM moz_bookmarks b " +
+                    "JOIN moz_places p ON p.id = b.fk WHERE b.type = 1 AND " + WebOnly;
+                using SqliteDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!Uri.TryCreate(reader.GetString(0), UriKind.Absolute, out Uri? uri))
+                    {
+                        continue;
+                    }
+
+                    bookmarks.Add(new BookmarkEntry
+                    {
+                        Url = uri.AbsoluteUri,
+                        Title = reader.IsDBNull(1) ? uri.Host : reader.GetString(1),
+                        AddedAt = reader.IsDBNull(2) ? DateTimeOffset.UtcNow : FromFirefoxTime(reader.GetInt64(2))
+                    });
+                }
+            }
+
+            if (options.History)
+            {
+                using SqliteCommand command = connection.CreateCommand();
+                command.CommandText =
+                    "SELECT p.url, p.title, p.last_visit_date FROM moz_places p " +
+                    "WHERE p.last_visit_date IS NOT NULL AND p.hidden = 0 AND " + WebOnly +
+                    " ORDER BY p.last_visit_date DESC LIMIT 2000";
+                using SqliteDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!Uri.TryCreate(reader.GetString(0), UriKind.Absolute, out Uri? uri))
+                    {
+                        continue;
+                    }
+
+                    history.Add(new HistoryEntry
+                    {
+                        Url = uri.AbsoluteUri,
+                        Title = reader.IsDBNull(1) || string.IsNullOrWhiteSpace(reader.GetString(1)) ? uri.Host : reader.GetString(1),
+                        VisitedAt = FromFirefoxTime(reader.GetInt64(2))
+                    });
+                }
+            }
+        }
+        catch (SqliteException)
+        {
+            // An upgrading or damaged profile database is skipped like a busy Chromium one.
+        }
+        finally
+        {
+            TryDelete(temporaryPath);
+            TryDelete(temporaryPath + "-wal");
+            TryDelete(temporaryPath + "-shm");
+        }
+    }
+
+    // Firefox stores PRTime: microseconds since the Unix epoch.
+    private static DateTimeOffset FromFirefoxTime(long microseconds) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(Math.Clamp(microseconds / 1000, 0, 253402300799999));
 
     private static void ReadOpenTabs(string profileFolder, HashSet<string> destination)
     {

@@ -880,11 +880,27 @@ public sealed partial class MainWindow : Window
             await RunPendingFirstRunActionsAsync();
 
             _ = RunAutomaticBackupIfDueAsync();
+            _ = ReportAppHealthAsync();
         }
         catch (Exception exception)
         {
             _startupTransfer?.Completion.TrySetException(exception);
             await ShowErrorDialogAsync("Aero could not start WebView2", exception.Message);
+        }
+    }
+
+    private async Task ReportAppHealthAsync()
+    {
+        if (AppHealth.TakeUnseenCrash())
+        {
+            ShowNoticeToast(Localization.AeroLocalizer.Get("Notice.CrashedLastTime"), AppHealth.CrashLogPath);
+        }
+
+        if (_settings.CheckForUpdates && await AppHealth.FindNewerReleaseAsync() is Version latest)
+        {
+            ShowNoticeToast(
+                string.Format(Localization.AeroLocalizer.Get("Notice.UpdateAvailable"), latest),
+                AppHealth.ReleasesPage);
         }
     }
 
@@ -1509,7 +1525,8 @@ public sealed partial class MainWindow : Window
 
         Task passwordBridgeTask = RegisterPasswordCaptureBridgeAsync(state);
         Task zoomBridgeTask = RegisterPageZoomBridgeAsync(state);
-        await Task.WhenAll(passwordBridgeTask, zoomBridgeTask);
+        Task storeBridgeTask = RegisterExtensionStoreBridgeAsync(state);
+        await Task.WhenAll(passwordBridgeTask, zoomBridgeTask, storeBridgeTask);
 
         if (ensureCurrentDocumentBridges)
         {
@@ -1874,6 +1891,7 @@ public sealed partial class MainWindow : Window
         await RunMemorySaverCycleAsync();
         await RunResourceBudgetCycleAsync();
         await RunCookieVaultSweepAsync();
+        await RunFolderSyncAsync();
     }
 
     private void SelectTab(BrowserTabState state)

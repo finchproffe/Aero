@@ -19,13 +19,25 @@ public sealed partial class MainWindow
         string action,
         JsonElement message)
     {
+        // "import-chrome", "import-yandex", "import-firefox", ...
+        if (action.StartsWith("import-", StringComparison.Ordinal) &&
+            Enum.TryParse(action["import-".Length..], ignoreCase: true, out ChromiumBrowserKind browser) &&
+            Enum.IsDefined(browser))
+        {
+            await ImportChromiumDataAsync(state, browser, message);
+            return true;
+        }
+
         switch (action)
         {
-            case "import-chrome":
-                await ImportChromiumDataAsync(state, ChromiumBrowserKind.Chrome, message);
+            case "sync-setup":
+                await SetupFolderSyncAsync(state);
                 return true;
-            case "import-edge":
-                await ImportChromiumDataAsync(state, ChromiumBrowserKind.Edge, message);
+            case "sync-passwords":
+                await SyncPasswordsAsync(state);
+                return true;
+            case "sync-disable":
+                await DisableFolderSyncAsync(state);
                 return true;
             case "import-passwords-csv":
                 await ImportPasswordsFromCsvAsync(state);

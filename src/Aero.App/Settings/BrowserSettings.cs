@@ -425,6 +425,15 @@ public sealed class BrowserSettings
     // Opt-in: it asks for Windows Hello on every launch.
     public bool ProtectCookiesWithHello { get; set; }
 
+    // "Aero Sync" folder inside the user's cloud folder; empty = sync off.
+    public string SyncFolder { get; set; } = string.Empty;
+
+    // Names this device's files in the sync folder.
+    public string SyncDeviceId { get; set; } = string.Empty;
+
+    // Once a day Aero asks GitHub for the latest release; nothing about the user is sent.
+    public bool CheckForUpdates { get; set; } = true;
+
     public static BrowserSettings Load(
         string? storageRoot = null,
         bool persistToDisk = true)

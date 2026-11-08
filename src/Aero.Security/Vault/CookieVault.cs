@@ -120,17 +120,7 @@ public static class CookieVaultFile
         byte[] plaintext = JsonSerializer.SerializeToUtf8Bytes(cookies);
         try
         {
-            byte[] output = new byte[HeaderSize + plaintext.Length];
-            output[0] = Version;
-            RandomNumberGenerator.Fill(output.AsSpan(1, NonceSize));
-            using AesGcm aes = new(key, TagSize);
-            aes.Encrypt(
-                output.AsSpan(1, NonceSize),
-                plaintext,
-                output.AsSpan(HeaderSize),
-                output.AsSpan(1 + NonceSize, TagSize),
-                Encoding.UTF8.GetBytes(context));
-            return output;
+            return SealBytes(key, plaintext, context);
         }
         finally
         {
@@ -141,9 +131,40 @@ public static class CookieVaultFile
     /// <exception cref="CryptographicException">Wrong key, wrong profile or tampered file.</exception>
     public static List<VaultCookie> Open(ReadOnlySpan<byte> key, byte[] sealedData, string context)
     {
+        byte[] plaintext = OpenBytes(key, sealedData, context);
+        try
+        {
+            return JsonSerializer.Deserialize<List<VaultCookie>>(plaintext) ?? [];
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+    }
+
+    /// <summary>The same container for any payload (the sync files use it too).</summary>
+    public static byte[] SealBytes(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext, string context)
+    {
+        byte[] output = new byte[HeaderSize + plaintext.Length];
+        output[0] = Version;
+        RandomNumberGenerator.Fill(output.AsSpan(1, NonceSize));
+        using AesGcm aes = new(key, TagSize);
+        aes.Encrypt(
+            output.AsSpan(1, NonceSize),
+            plaintext,
+            output.AsSpan(HeaderSize),
+            output.AsSpan(1 + NonceSize, TagSize),
+            Encoding.UTF8.GetBytes(context));
+        return output;
+    }
+
+    /// <summary>Returns the plaintext; the caller zeroes it.</summary>
+    /// <exception cref="CryptographicException">Wrong key, wrong context or tampered data.</exception>
+    public static byte[] OpenBytes(ReadOnlySpan<byte> key, byte[] sealedData, string context)
+    {
         if (sealedData.Length < HeaderSize || sealedData[0] != Version)
         {
-            throw new CryptographicException("Unsupported Aero cookie vault format.");
+            throw new CryptographicException("Unsupported Aero sealed file format.");
         }
 
         byte[] plaintext = new byte[sealedData.Length - HeaderSize];
@@ -156,11 +177,12 @@ public static class CookieVaultFile
                 sealedData.AsSpan(1 + NonceSize, TagSize),
                 plaintext,
                 Encoding.UTF8.GetBytes(context));
-            return JsonSerializer.Deserialize<List<VaultCookie>>(plaintext) ?? [];
+            return plaintext;
         }
-        finally
+        catch
         {
             CryptographicOperations.ZeroMemory(plaintext);
+            throw;
         }
     }
 }

@@ -5,8 +5,8 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Aero.Security.AppBound</RootNamespace>
     <AssemblyName>Aero.Security.AppBound</AssemblyName>
-    <Version>0.24.0.0</Version>
-    <FileVersion>0.24.0.0</FileVersion>
+    <Version>0.25.0.0</Version>
+    <FileVersion>0.25.0.0</FileVersion>
     <Platforms>x64;ARM64</Platforms>
     <PlatformTarget Condition="'$(Platform)' == 'x64'">x64</PlatformTarget>
     <PlatformTarget Condition="'$(Platform)' == 'ARM64'">ARM64</PlatformTarget>

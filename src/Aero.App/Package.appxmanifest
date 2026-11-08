@@ -10,7 +10,7 @@
   <Identity
     Name="Aero.Browser"
     Publisher="CN=Aero"
-    Version="0.24.0.0" />
+    Version="0.25.0.0" />
 
   <mp:PhoneIdentity
     PhoneProductId="63d541df-8bd0-4f28-87b5-3926e2f0e9b4"
@@ -69,6 +69,30 @@
             <uap:DisplayName>Aero</uap:DisplayName>
             <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
           </uap:Protocol>
+        </uap:Extension>
+        <!-- Lets Windows offer Aero as the default app for web pages and PDFs, which a
+             default browser is expected to cover besides http/https. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="html">
+            <uap:DisplayName>Aero HTML Document</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.htm</uap:FileType>
+              <uap:FileType>.html</uap:FileType>
+              <uap:FileType>.shtml</uap:FileType>
+              <uap:FileType>.xhtml</uap:FileType>
+              <uap:FileType>.svg</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pdf">
+            <uap:DisplayName>Aero PDF Document</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.pdf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
         </uap:Extension>
         <!-- App-bound key service for the cookie vault. Auto start only bootstraps its "users may
              start me" permission at boot; it exits after a minute idle and Aero starts it on demand. -->

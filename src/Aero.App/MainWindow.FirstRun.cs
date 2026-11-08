@@ -80,6 +80,21 @@ public sealed partial class MainWindow
         import.Items.Add(importNone);
         import.Items.Add(importChrome);
         import.Items.Add(importEdge);
+        foreach ((ChromiumBrowserKind kind, string name) in new[]
+                 {
+                     (ChromiumBrowserKind.Yandex, "Yandex Browser"),
+                     (ChromiumBrowserKind.Brave, "Brave"),
+                     (ChromiumBrowserKind.Vivaldi, "Vivaldi"),
+                     (ChromiumBrowserKind.Opera, "Opera"),
+                     (ChromiumBrowserKind.Firefox, "Firefox")
+                 })
+        {
+            // Offer only browsers that are actually installed for this user.
+            if (Directory.Exists(ChromiumImportService.GetBrowserRoot(kind)))
+            {
+                import.Items.Add(new ComboBoxItem { Tag = kind, Content = name });
+            }
+        }
         import.SelectedIndex = 0;
 
         CheckBox defaultBrowser = new();
