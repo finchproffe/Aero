@@ -10,8 +10,9 @@ namespace Aero.App;
 /// </summary>
 internal static class AppHealth
 {
-    public const string ReleasesPage = "https://github.com/finchproffe/Aero/releases/latest";
-    private const string LatestReleaseApi = "https://api.github.com/repos/finchproffe/Aero/releases/latest";
+    public const string ReleasesPage = "https://github.com/finchproffe/Aero/releases";
+    // Not /releases/latest: GitHub skips pre-releases there, and every Aero build is one for now.
+    private const string LatestReleaseApi = "https://api.github.com/repos/finchproffe/Aero/releases?per_page=1";
     private const long MaximumLogBytes = 1024 * 1024;
 
     public static readonly string CrashLogPath = Path.Combine(
@@ -68,8 +69,13 @@ internal static class AppHealth
         {
             using HttpClient http = new() { Timeout = TimeSpan.FromSeconds(10) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("Aero-Browser"); // GitHub's API rejects requests without one.
-            using JsonDocument release = JsonDocument.Parse(await http.GetStringAsync(LatestReleaseApi));
-            string tag = release.RootElement.GetProperty("tag_name").GetString() ?? string.Empty;
+            using JsonDocument releases = JsonDocument.Parse(await http.GetStringAsync(LatestReleaseApi));
+            if (releases.RootElement.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            string tag = releases.RootElement[0].GetProperty("tag_name").GetString() ?? string.Empty;
             return Version.TryParse(tag.TrimStart('v', 'V'), out Version? latest) && Normalize(latest) > Normalize(CurrentVersion)
                 ? latest
                 : null;
