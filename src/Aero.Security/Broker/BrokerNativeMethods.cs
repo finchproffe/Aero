@@ -2,19 +2,12 @@ using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 
 namespace Aero.App.Security;
 
 internal static partial class BrokerNativeMethods
 {
-    private const uint DaclSecurityInformation = 0x00000004;
-    private const uint ProtectedDaclSecurityInformation = 0x80000000;
     private const uint ProcessQueryLimitedInformation = 0x00001000;
-    private const uint ReadControl = 0x00020000;
-    private const uint WriteDac = 0x00040000;
-    private const int SecurityDescriptorRevision = 1;
-
 
     private const uint Th32csSnapProcess = 0x00000002;
     private static readonly IntPtr InvalidHandleValue = new(-1);
@@ -92,25 +85,6 @@ internal static partial class BrokerNativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ProcessIdToSessionId(uint processId, out uint sessionId);
 
-    [LibraryImport("advapi32.dll", EntryPoint = "ConvertStringSecurityDescriptorToSecurityDescriptorW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool ConvertStringSecurityDescriptorToSecurityDescriptor(
-        string stringSecurityDescriptor,
-        uint stringSdRevision,
-        out IntPtr securityDescriptor,
-        out uint securityDescriptorSize);
-
-    [LibraryImport("advapi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetKernelObjectSecurity(
-        IntPtr handle,
-        uint securityInformation,
-        IntPtr securityDescriptor);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial IntPtr LocalFree(IntPtr memory);
-
-
     public static int GetCurrentParentProcessId()
     {
         IntPtr snapshot = CreateToolhelp32Snapshot(Th32csSnapProcess, 0);
@@ -163,6 +137,13 @@ internal static partial class BrokerNativeMethods
         return (int)sessionId;
     }
 
+    public static bool TryGetProcessSessionId(int processId, out int sessionId)
+    {
+        bool found = ProcessIdToSessionId((uint)processId, out uint session) && session <= int.MaxValue;
+        sessionId = found ? (int)session : -1;
+        return found;
+    }
+
     public static int GetPipeServerProcessId(SafePipeHandle pipe)
     {
         if (!GetNamedPipeServerProcessId(pipe, out uint processId) || processId > int.MaxValue)
@@ -212,55 +193,10 @@ internal static partial class BrokerNativeMethods
         return processId == (uint)expectedProcessId;
     }
 
-    public static bool TryRestrictCurrentProcessDacl()
-    {
-        using WindowsIdentity identity = WindowsIdentity.GetCurrent();
-        string? userSid = identity.User?.Value;
-        if (string.IsNullOrWhiteSpace(userSid))
-        {
-            return false;
-        }
-
-        // SYSTEM keeps full access. The current user receives only terminate,
-        // limited-query and synchronize rights, not PROCESS_VM_READ/WRITE.
-        // As object owner the same SID can still replace the DACL, so this is
-        // hardening rather than a kernel-level same-user security boundary.
-        string sddl = $"O:{userSid}D:P(A;;GA;;;SY)(A;;0x00101001;;;{userSid})";
-        IntPtr descriptor = IntPtr.Zero;
-        try
-        {
-            if (!ConvertStringSecurityDescriptorToSecurityDescriptor(
-                    sddl,
-                    SecurityDescriptorRevision,
-                    out descriptor,
-                    out _))
-            {
-                return false;
-            }
-
-            using SafeProcessHandle currentProcess = OpenProcess(
-                ReadControl | WriteDac | ProcessQueryLimitedInformation,
-                inheritHandle: false,
-                (uint)Environment.ProcessId);
-            if (currentProcess.IsInvalid)
-            {
-                return false;
-            }
-
-            return SetKernelObjectSecurity(
-                currentProcess.DangerousGetHandle(),
-                DaclSecurityInformation |
-                ProtectedDaclSecurityInformation,
-                descriptor);
-        }
-        finally
-        {
-            if (descriptor != IntPtr.Zero)
-            {
-                _ = LocalFree(descriptor);
-            }
-        }
-    }
+    // The Broker hosts no WebView2, so it also denies DUP_HANDLE. SeDebugPrivilege still
+    // bypasses this; the driver is the real boundary when installed.
+    public static bool TryRestrictCurrentProcessDacl() =>
+        ProcessAccessGuard.TryRestrict(Environment.ProcessId);
 
     public static bool TryGetProcessImagePath(int processId, out string imagePath)
     {

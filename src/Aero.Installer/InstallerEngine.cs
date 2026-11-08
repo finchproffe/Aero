@@ -648,6 +648,9 @@ $ErrorActionPreference = 'Stop'
 Get-AppxPackage -Name '{{LegacyPackageName}}' -ErrorAction SilentlyContinue |
     ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName -ErrorAction SilentlyContinue }
 Add-AppxPackage -Path '{{escapedPackage}}' -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+# The app-bound key service grants users the right to start it on its first run; do that run now
+# so the cookie vault works on the very first launch, not only after a reboot.
+Start-Service -Name 'AeroAppBound' -ErrorAction SilentlyContinue
 """;
         PowerShellResult result = await RunPowerShellAsync(script, cancellationToken);
         if (result.ExitCode != 0)

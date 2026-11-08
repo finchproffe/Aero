@@ -4,7 +4,8 @@
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="mp uap rescap">
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  IgnorableNamespaces="mp uap rescap desktop6">
 
   <Identity
     Name="Aero.Browser"
@@ -69,6 +70,14 @@
             <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
           </uap:Protocol>
         </uap:Extension>
+        <!-- App-bound key service for the cookie vault. Auto start only bootstraps its "users may
+             start me" permission at boot; it exits after a minute idle and Aero starts it on demand. -->
+        <desktop6:Extension
+          Category="windows.service"
+          Executable="Aero.Security.AppBound.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop6:Service Name="AeroAppBound" StartupType="auto" StartAccount="localSystem" />
+        </desktop6:Extension>
       </Extensions>
     </Application>
   </Applications>
@@ -77,5 +86,7 @@
     <Capability Name="internetClient" />
     <Capability Name="privateNetworkClientServer" />
     <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="packagedServices" />
+    <rescap:Capability Name="localSystemServices" />
   </Capabilities>
 </Package>

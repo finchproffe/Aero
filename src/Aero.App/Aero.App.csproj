@@ -56,6 +56,7 @@
   <PropertyGroup>
     <AeroBrokerRuntimeSuffix Condition="'$(BuildMsix)' == 'true'">win-$(Platform)\</AeroBrokerRuntimeSuffix>
     <AeroBrokerOutputDir>$(MSBuildProjectDirectory)\..\Aero.Security.Broker\bin\$(Platform)\$(Configuration)\$(TargetFramework)\$(AeroBrokerRuntimeSuffix)</AeroBrokerOutputDir>
+    <AeroAppBoundOutputDir>$(MSBuildProjectDirectory)\..\Aero.Security.AppBound\bin\$(Platform)\$(Configuration)\$(TargetFramework)\$(AeroBrokerRuntimeSuffix)</AeroAppBoundOutputDir>
   </PropertyGroup>
 
   <Target Name="ValidateAeroSecurityBrokerPayload"
@@ -73,6 +74,8 @@
            Text="Aero Security Broker WinUI resource index is missing." />
     <Error Condition="!Exists('$(AeroBrokerOutputDir)Aero.Security.Broker.pri.payload')"
            Text="Aero Security Broker independent MSIX resource payload is missing." />
+    <Error Condition="!Exists('$(AeroAppBoundOutputDir)Aero.Security.AppBound.exe')"
+           Text="Aero app-bound key service payload is missing. Build Aero.Security.AppBound before the MSIX build." />
   </Target>
 
   <ItemGroup Condition="'$(BuildMsix)' == 'true'">
@@ -97,6 +100,10 @@
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(AeroBrokerOutputDir)Aero.Security.Broker.pri.payload"
              Link="Aero.Security.Broker.pri"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <!-- Runs on the package's own .NET runtime, like the Broker. -->
+    <Content Include="$(AeroAppBoundOutputDir)Aero.Security.AppBound.exe;$(AeroAppBoundOutputDir)Aero.Security.AppBound.dll;$(AeroAppBoundOutputDir)Aero.Security.AppBound.deps.json;$(AeroAppBoundOutputDir)Aero.Security.AppBound.runtimeconfig.json"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

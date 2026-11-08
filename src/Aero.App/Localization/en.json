@@ -1,4 +1,7 @@
 {
+  "Notice.CookieVaultLocked": "Site sign-ins were not unlocked",
+  "Html.Защитить входы на сайты Windows Hello": "Protect site sign-ins with Windows Hello",
+  "Html.Cookies и так хранятся вне файла браузера, который ищут стиллеры, под ключом, который открывается только внутри Aero. С Windows Hello этот ключ ещё и требует подтверждения при каждом запуске Aero.": "Cookies are already kept out of the browser file info-stealers look for, under a key that only opens inside Aero. With Windows Hello, that key also needs your confirmation every time Aero starts.",
   "Notice.SiteLocked": "{0} is locked",
   "Notice.BudgetFrozen": "Aero froze {0}",
   "Notice.BudgetFrozenDetail": "The background tab was using {0}. Open it to continue.",

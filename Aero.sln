@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aero.Security.TestLab", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aero.Security.Broker", "src\Aero.Security.Broker\Aero.Security.Broker.csproj", "{D7F5A2C1-5D66-4EC7-92E7-4A3F6B1E9C42}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aero.Security.AppBound", "src\Aero.Security.AppBound\Aero.Security.AppBound.csproj", "{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aero.Security.Broker.SmokeTests", "tests\Aero.Security.Broker.SmokeTests\Aero.Security.Broker.SmokeTests.csproj", "{6B0F99A2-9E4C-48D2-A3F7-73F226A5D8E1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aero.Storage", "src\Aero.Storage\Aero.Storage.csproj", "{4A6E7D30-8F5C-4E2D-A1B9-6C3F0D7E5A21}"
@@ -195,6 +197,18 @@ Global
 		{D7F5A2C1-5D66-4EC7-92E7-4A3F6B1E9C42}.Release|ARM64.Build.0 = Release|ARM64
 		{D7F5A2C1-5D66-4EC7-92E7-4A3F6B1E9C42}.Release|x64.ActiveCfg = Release|x64
 		{D7F5A2C1-5D66-4EC7-92E7-4A3F6B1E9C42}.Release|x64.Build.0 = Release|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|Any CPU.Build.0 = Debug|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|ARM64.Build.0 = Debug|ARM64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|x64.ActiveCfg = Debug|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Debug|x64.Build.0 = Debug|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|Any CPU.ActiveCfg = Release|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|Any CPU.Build.0 = Release|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|ARM64.ActiveCfg = Release|ARM64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|ARM64.Build.0 = Release|ARM64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|x64.ActiveCfg = Release|x64
+		{A3B1C5D2-7E44-4F1A-9C3B-2D8E6F0A1B57}.Release|x64.Build.0 = Release|x64
 		{6B0F99A2-9E4C-48D2-A3F7-73F226A5D8E1}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{6B0F99A2-9E4C-48D2-A3F7-73F226A5D8E1}.Debug|Any CPU.Build.0 = Debug|x64
 		{6B0F99A2-9E4C-48D2-A3F7-73F226A5D8E1}.Debug|ARM64.ActiveCfg = Debug|ARM64

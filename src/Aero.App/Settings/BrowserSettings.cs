@@ -422,6 +422,9 @@ public sealed class BrowserSettings
 
     public bool WipeLockedSiteSessions { get; set; } = true;
 
+    // Opt-in: it asks for Windows Hello on every launch.
+    public bool ProtectCookiesWithHello { get; set; }
+
     public static BrowserSettings Load(
         string? storageRoot = null,
         bool persistToDisk = true)

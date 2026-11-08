@@ -280,4 +280,95 @@ Require(typeof(PasswordBrokerClient).GetMethod(
         BindingFlags.NonPublic | BindingFlags.Instance) is null,
     "Password Broker still retries a completed Windows Hello interaction.");
 
+// Cookie vault: persistent cookies are adopted and hidden, sign-outs and real session cookies drop out.
+DateTimeOffset vaultNow = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+VaultCookie sid = new("SID", "a", ".youtube.com", "/", 1_900_000_000, true, true, 1);
+VaultCookie pref = new("PREF", "x", "www.youtube.com", "/", 1_900_000_000, true, false, 1);
+CookieVaultLedger ledger = new([]);
+CookieVaultReconcileResult first = ledger.Reconcile(
+    [new ObservedCookie(sid, IsSession: false), new ObservedCookie(pref, IsSession: false)], vaultNow);
+Require(first.Changed && first.ToMakeSession.Count == 2 && ledger.Entries.Count == 2,
+    "Persistent cookies were not adopted into the cookie vault.");
+CookieVaultReconcileResult steady = ledger.Reconcile(
+    [new ObservedCookie(sid, IsSession: true), new ObservedCookie(pref, IsSession: true)], vaultNow);
+Require(!steady.Changed && steady.ToMakeSession.Count == 0,
+    "The vault rewrote cookies that WebView2 already holds only in memory.");
+CookieVaultReconcileResult signOut = ledger.Reconcile(
+    [new ObservedCookie(pref with { Value = "session-only" }, IsSession: true)], vaultNow);
+Require(signOut.Changed && ledger.Entries.Count == 0,
+    "A signed-out cookie or a site-replaced session cookie stayed in the vault.");
+CookieVaultLedger expiring = new([sid with { ExpiresUnixSeconds = 1_700_000_000 }]);
+CookieVaultReconcileResult expiry = expiring.Reconcile([new ObservedCookie(sid, IsSession: true)], vaultNow);
+Require(expiry.ToDelete.Count == 1 && expiring.Entries.Count == 0,
+    "An expired vault cookie kept living as a session cookie.");
+
+byte[] vaultKey = RandomNumberGenerator.GetBytes(32);
+byte[] sealedVault = CookieVaultFile.Seal(vaultKey, [sid, pref], "profile-a");
+Require(CookieVaultFile.Open(vaultKey, sealedVault, "profile-a").SequenceEqual([sid, pref]),
+    "The cookie vault did not round-trip.");
+Require(sealedVault.AsSpan().IndexOf("youtube"u8) < 0,
+    "Cookie data is visible in the sealed vault file.");
+bool rejected(Action open)
+{
+    try { open(); return false; }
+    catch (CryptographicException) { return true; }
+}
+Require(rejected(() => CookieVaultFile.Open(vaultKey, sealedVault, "profile-b")),
+    "A vault from another profile was accepted.");
+sealedVault[^1] ^= 1;
+Require(rejected(() => CookieVaultFile.Open(vaultKey, sealedVault, "profile-a")),
+    "A tampered cookie vault was accepted.");
+
+// App-bound key: frames round-trip, oversized ones are refused before allocation, and a key
+// file in an unknown format fails closed instead of being guessed at.
+using (MemoryStream frame = new())
+{
+    AppBoundKey.WriteFrame(frame, AppBoundKey.OpUnwrap, vaultKey);
+    frame.Position = 0;
+    (byte head, byte[] body) = AppBoundKey.ReadFrame(frame);
+    Require(head == AppBoundKey.OpUnwrap && body.SequenceEqual(vaultKey), "An app-bound frame did not round-trip.");
+}
+bool oversizedRejected = false;
+try { _ = AppBoundKey.ReadFrame(new MemoryStream([AppBoundKey.OpUnwrap, 0xFF, 0xFF])); }
+catch (InvalidDataException) { oversizedRejected = true; }
+Require(oversizedRejected, "An oversized app-bound frame was accepted.");
+Require(rejected(() => CookieVaultKey.Unwrap("unused", [(byte)'X', 1, 2], IntPtr.Zero)) &&
+        rejected(() => CookieVaultKey.Unwrap("unused", [], IntPtr.Zero)),
+    "A cookie vault key in an unknown format was not refused.");
+Require(CookieVaultKey.IsHelloWrapped([(byte)'H', 1]) && !CookieVaultKey.IsHelloWrapped([(byte)'A', 1]),
+    "The cookie vault key mode byte is misread.");
+
+// Process guard: after the DACL write a same-user process can no longer open the target
+// for memory access, but can still wait on it (WebView2 and the broker rely on that).
+using (Process guarded = Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1")
+       {
+           CreateNoWindow = true,
+           UseShellExecute = false
+       })!)
+{
+    try
+    {
+        Require(ProcessAccessGuard.TryRestrict(guarded.Id), "The process DACL could not be restricted.");
+        using Process reopened = Process.GetProcessById(guarded.Id);
+        bool memoryOpenDenied = false;
+        try { _ = reopened.Handle; }
+        catch (System.ComponentModel.Win32Exception) { memoryOpenDenied = true; }
+        Require(memoryOpenDenied, "A guarded process can still be opened with full access.");
+        Require(!reopened.HasExited, "A guarded process can no longer be waited on.");
+        Require(!ProcessAccessGuard.TryRestrict(guarded.Id),
+            "The owner can still rewrite a guarded process DACL.");
+    }
+    finally
+    {
+        guarded.Kill();
+    }
+}
+
+Require(ProcessAccessGuard.AddGuardAces("D:(A;;GA;;;SY)", "S-1-5-21-1") ==
+        "D:(D;;0xc2bfa;;;S-1-5-21-1)(A;;RC;;;OW)(A;;GA;;;SY)",
+    "The deny ACE must precede every existing grant.");
+Require(ProcessAccessGuard.AddGuardAces("D:NO_ACCESS_CONTROL", "S-1-5-21-1") is null &&
+        ProcessAccessGuard.AddGuardAces(null, "S-1-5-21-1") is null,
+    "A NULL or missing DACL must not be guarded blindly.");
+
 Console.WriteLine("Aero Security Broker smoke tests passed.");

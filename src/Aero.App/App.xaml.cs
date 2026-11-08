@@ -14,6 +14,8 @@ public partial class App : Application
 
     public App()
     {
+        // Before any WebView2, vault or broker state exists in this process.
+        Aero.App.Security.ProcessAccessGuard.HardenCurrentProcess();
         InitializeComponent();
     }
 

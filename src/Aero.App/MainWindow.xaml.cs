@@ -822,6 +822,7 @@ public sealed partial class MainWindow : Window
             // delay without allowing the first page to bypass protection.
             Task<CoreWebView2Environment> environmentTask =
                 GetOrCreateSharedEnvironmentAsync(userDataFolder);
+            PrefetchCookieVault();
             Task shieldInitializationTask = _requestBlocker.InitializeAsync(
                 _settings.ShieldCustomRules,
                 _settings.ShieldAutoUpdate,
@@ -1313,6 +1314,8 @@ public sealed partial class MainWindow : Window
     {
         WebView2 browser = state.Browser;
         CoreWebView2 core = browser.CoreWebView2;
+        // Sign-ins must be back in the profile before this tab's first request.
+        await EnsureCookieVaultRestoredAsync(state);
         ConfigureExternalFileDrop(browser);
 
         // A discarded tab can receive a fresh WebView2 control. Always clear any
@@ -1870,6 +1873,7 @@ public sealed partial class MainWindow : Window
     {
         await RunMemorySaverCycleAsync();
         await RunResourceBudgetCycleAsync();
+        await RunCookieVaultSweepAsync();
     }
 
     private void SelectTab(BrowserTabState state)
@@ -2067,6 +2071,12 @@ public sealed partial class MainWindow : Window
         }
 
         TraceNavigationStarting(state, args);
+        if (state.ContainerId is null && CookieVaultAppliesToWindow)
+        {
+            // Navigations are when sites set sign-in cookies: sweep soon after them.
+            GetCookieVaultSession().NavigatedSinceSweep = true;
+        }
+
         Uri? diagnosticNavigationUri =
             Uri.TryCreate(args.Uri, UriKind.Absolute, out Uri? parsedDiagnosticNavigationUri)
                 ? parsedDiagnosticNavigationUri

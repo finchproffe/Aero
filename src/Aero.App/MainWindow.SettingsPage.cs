@@ -132,6 +132,7 @@ public sealed partial class MainWindow
         nameof(BrowserSettings.BackgroundMemoryBudgetMb),
         nameof(BrowserSettings.LockedSites),
         nameof(BrowserSettings.WipeLockedSiteSessions),
+        nameof(BrowserSettings.ProtectCookiesWithHello),
         nameof(BrowserSettings.CameraPermissionDefault),
         nameof(BrowserSettings.MicrophonePermissionDefault),
         nameof(BrowserSettings.GeolocationPermissionDefault),
@@ -358,6 +359,10 @@ public sealed partial class MainWindow
                     if (changedSetting == nameof(BrowserSettings.AppLanguage))
                     {
                         ShowSettingsPage(state);
+                    }
+                    else if (changedSetting == nameof(BrowserSettings.ProtectCookiesWithHello))
+                    {
+                        await OnCookieVaultSettingChangedAsync();
                     }
                     break;
                 case "aero-settings-action":
@@ -1811,6 +1816,7 @@ html[data-theme=Light]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#ff
 <div class="row"><div class="label"><b>Что очищать</b></div><div class="stack"><label><input type="checkbox" data-setting="ClearHistoryOnClose"> История</label><label><input type="checkbox" data-setting="ClearCookiesOnClose"> Cookies</label><label><input type="checkbox" data-setting="ClearCacheOnClose"> Кэш</label><label><input type="checkbox" data-setting="ClearSiteDataOnClose"> Данные сайтов</label></div></div>
 <div class="row"><div class="label"><b>Исключения сайтов</b><span>Один домен на строку.</span></div><textarea data-setting="PrivacySiteExceptions" data-list="true"></textarea></div>
 <div class="row"><div class="label"><b>Исключения сторонних cookies</b><span>Домены документов или ресурсов, которым разрешены сторонние cookies.</span></div><textarea data-setting="ThirdPartyCookieExceptions" data-list="true"></textarea></div>
+<div class="row"><div class="label"><b>Защитить входы на сайты Windows Hello</b><span>Cookies и так хранятся вне файла браузера, который ищут стиллеры, под ключом, который открывается только внутри Aero. С Windows Hello этот ключ ещё и требует подтверждения при каждом запуске Aero.</span></div><input type="checkbox" data-setting="ProtectCookiesWithHello"></div>
 <div class="row"><div class="label"><b>Сайты под замком</b><span>Один домен на строку. Открываются только после Windows Hello; доступ действует 30 минут после последнего визита.</span></div><textarea data-setting="LockedSites" data-list="true"></textarea></div>
 <div class="row"><div class="label"><b>Выходить из сайтов под замком</b><span>Их cookies станут сессионными и удалятся при закрытии Aero.</span></div><input type="checkbox" data-setting="WipeLockedSiteSessions"></div>
 <div class="row"><div class="label"><b>Временные cookies</b><span>Для этих сайтов постоянные cookies преобразуются в сессионные.</span></div><textarea data-setting="TemporaryCookieSites" data-list="true"></textarea></div>
