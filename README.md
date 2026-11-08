@@ -52,7 +52,7 @@ Based on publicly documented defaults; other browsers change between releases, s
 | **Cookie vault** | Persistent cookies never stay in WebView2's on-disk Cookies database. Aero turns them into in-memory session cookies and keeps the real copy in an AES-256-GCM vault. |
 | **App-bound key** | The vault key is wrapped by `AeroAppBound`, a tiny LocalSystem service shipped in the MSIX. It unwraps the key only for `Aero.exe` from its own package folder. A stealer can copy the files but cannot open them. |
 | **Windows Hello (opt-in)** | Settings → *Protect site sign-ins with Windows Hello* additionally requires your face, fingerprint or PIN on every launch. |
-| **Password vault** | Saved passwords are encrypted with a non-exportable Windows Hello key and revealed only in a separate, hardened broker process. WebView2's own password store is turned off. |
+| **Aero Vault** | Saved passwords sit behind Windows Hello, this PC's TPM and your Windows account at once. See [Aero Vault](#aero-vault) below. |
 | **Launch guard** | Environment variables and registry policies that would start WebView2 with a debugging port, another runtime or another profile are removed or refused before the engine starts. |
 | **Process guard** | Other processes of the user cannot open `Aero.exe` to read or write its memory or start threads in it, and cannot reset that rule without admin rights. Remote DLL loads and legacy injection points are blocked. |
 
@@ -68,6 +68,34 @@ sequenceDiagram
 ```
 
 The service starts on demand and exits after a minute idle: about 60 ms on a cold start (in parallel with WebView2 startup), 1 ms when warm, 8.5 MB while running, nothing between launches.
+
+## Aero Vault
+
+<p align="center"><b>Your passwords, locked three times over and never left open.</b></p>
+
+Aero Vault is Aero's own password manager. It does not use the Chromium password store that stealers know how to read, and it is built so that a copied vault file or a screen recorder gets nothing, and a stealer on the PC cannot open the vault without you.
+
+|   | |
+|---|---|
+| 🔐 **Three keys, all required** | The vault key opens only with your **Windows Hello** (face, fingerprint or PIN, held by a non-exportable key), only on **this PC** (Node Lock: a key kept in the TPM by the Microsoft Platform Crypto Provider) and only for **your Windows account** (DPAPI). A vault file copied to another machine is noise. |
+| ⏱️ **Never left unlocked** | There is no "unlocked for 15 minutes" state. Every fill or reveal gets its own short-lived key lease that is destroyed right after. Secrets live in locked, unmanaged memory and are zeroed before release. |
+| 🪟 **Reveal outside the browser** | *Show password* runs in a separate one-shot process, the Aero Security Broker: an HMAC-SHA256-authenticated channel, a hardened process with loader monitoring, and a password window hidden from screen capture. The browser process never sees the revealed password. |
+| 🎯 **Fills only where it belongs** | Autofill reaches the page through a WebView2 shared buffer bound to the exact origin and document. Aero Vault refuses to fill on IP addresses, local hosts, punycode look-alike domains and suspiciously complex domain names. |
+| 🧱 **One store, no duplicates** | WebView2's built-in password saving is off, so there is no second copy in the `Login Data` file that stealers grab. The optional kernel driver can additionally shield the broker. |
+
+```mermaid
+flowchart LR
+    P[Password] --> V[(Aero Vault)]
+    V --- H[Windows Hello<br/>it is really you]
+    V --- T[Node Lock TPM key<br/>this PC]
+    V --- D[DPAPI<br/>this Windows account]
+    V -->|reveal| B[Security Broker<br/>separate hardened process]
+    V -->|fill| W[Exact origin and document only]
+```
+
+### Attribution: Vault is Powered by Aero
+
+Every source file of Aero Vault starts with the notice **"Vault is Powered by Aero"**. Forks and derivative works must keep it: MPL-2.0 section 3.4 forbids removing or altering notices in the source code. If your product ships Aero Vault or code derived from it, credit it in your product and documentation as **Vault is Powered by Aero**.
 
 ### What Aero does not protect against yet
 

@@ -1,3 +1,6 @@
+// Aero Vault. Vault is Powered by Aero.
+// Copyright (c) 2026 finchproffe. Licensed under the Mozilla Public License 2.0.
+// Under MPL-2.0 section 3.4 this notice must stay in every copy and fork of this file.
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
