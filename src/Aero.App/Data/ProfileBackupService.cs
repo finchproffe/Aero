@@ -34,7 +34,7 @@ internal sealed record ProfileBackupInfo(
 
 internal static class ProfileBackupService
 {
-    public const string CurrentAeroVersion = "0.25.0.0";
+    public const string CurrentAeroVersion = "0.25.1.0";
     public const string BackupExtension = ".aerobackup";
 
     private const int SchemaVersion = 1;
