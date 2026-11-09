@@ -22,6 +22,7 @@ public sealed partial class MainWindow
     private const string SettingsAddress = "aero://settings";
     private const string HomeAddress = "aero://home";
     private string? _profileToDeleteOnClose;
+    private string? _pendingSettingsSection;
 
     private static readonly JsonSerializerOptions SettingsJsonOptions = new()
     {
@@ -116,6 +117,7 @@ public sealed partial class MainWindow
         nameof(BrowserSettings.ShieldAutoUpdate),
         nameof(BrowserSettings.ShieldYouTubeCleanMode),
         nameof(BrowserSettings.CleanTrackingLinks),
+        nameof(BrowserSettings.RejectCookieBanners),
         nameof(BrowserSettings.ShieldAllowlist),
         nameof(BrowserSettings.ShieldCustomRules),
         nameof(BrowserSettings.MemorySaverMode),
@@ -309,8 +311,10 @@ public sealed partial class MainWindow
                     backup.CreatedAt,
                     backup.Size
                 }),
-            isPrivate = _isPrivateWindow
+            isPrivate = _isPrivateWindow,
+            initialSection = _pendingSettingsSection
         };
+        _pendingSettingsSection = null;
 
         string json = JsonSerializer.Serialize(model, SettingsJsonOptions);
         string html = SettingsPageTemplate
@@ -1825,7 +1829,7 @@ html[data-theme=Light]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#ff
 </div></section>
 <section id="shield"><h1>Shield</h1><p class="lead">Блокировка рекламы, трекеров и косметическая фильтрация.</p><div class="card">
 <div class="row"><div class="label"><b>Включить Shield</b></div><input type="checkbox" data-setting="BlockAdsAndTrackers"></div><div class="row"><div class="label"><b>Уровень блокировки</b></div><select data-setting="ShieldMode"><option value="Standard">Стандартный</option><option value="Strict">Строгий</option></select></div><div class="row"><div class="label"><b>Движок</b></div><select data-setting="ShieldEngineMode"><option value="Hybrid">Гибридный</option><option value="Advanced">Расширенный</option><option value="Native">Нативный</option></select></div>
-<div class="row"><div class="label"><b>Косметическая фильтрация</b></div><input type="checkbox" data-setting="ShieldCosmeticFiltering"></div><div class="row"><div class="label"><b>Автообновление списков</b></div><input type="checkbox" data-setting="ShieldAutoUpdate"></div><div class="row"><div class="label"><b>YouTube Clean Mode</b></div><input type="checkbox" data-setting="ShieldYouTubeCleanMode"></div><div class="row"><div class="label"><b>Очищать tracking-параметры</b></div><input type="checkbox" data-setting="CleanTrackingLinks"></div>
+<div class="row"><div class="label"><b>Косметическая фильтрация</b></div><input type="checkbox" data-setting="ShieldCosmeticFiltering"></div><div class="row"><div class="label"><b>Автообновление списков</b></div><input type="checkbox" data-setting="ShieldAutoUpdate"></div><div class="row"><div class="label"><b>YouTube Clean Mode</b></div><input type="checkbox" data-setting="ShieldYouTubeCleanMode"></div><div class="row"><div class="label"><b>Очищать tracking-параметры</b></div><input type="checkbox" data-setting="CleanTrackingLinks"></div><div class="row"><div class="label"><b>Отклонять cookie-баннеры</b><span>Нажимает «Отклонить все», если такая кнопка есть. Для новых вкладок</span></div><input type="checkbox" data-setting="RejectCookieBanners"></div>
 <div class="row"><div class="label"><b>Исключения</b></div><textarea data-setting="ShieldAllowlist" data-list="true"></textarea></div><div class="row"><div class="label"><b>Пользовательские фильтры</b></div><textarea data-setting="ShieldCustomRules" data-list="true"></textarea></div>
 <div class="row"><div class="label"><b>Списки фильтров</b><span>Встроенный быстрый список, EasyList, EasyPrivacy и пользовательские правила.</span></div><div class="chips"><span class="chip">Aero Fast</span><span class="chip">EasyList</span><span class="chip">EasyPrivacy</span><span class="chip">Custom</span></div></div>
 <div class="row"><div class="label"><b>Статистика и диагностика</b><span id="shieldStats"></span></div><button class="action" data-action="shield-refresh">Обновить списки</button></div>
@@ -1899,7 +1903,7 @@ const navPaths={
  profiles:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'
 };
 const navIcon=id=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navPaths[id]}</svg>`;
-document.getElementById('nav').innerHTML=sections.map(([id,n,icon])=>`<button data-page="${id}"><span class="nav-icon" aria-hidden="true">${navIcon(id)}</span><span>${n}</span></button>`).join('');document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.getElementById('settingsSearch').value='';filterSettings('');show(b.dataset.page,true)});show(location.hash.slice(1)&&document.getElementById(location.hash.slice(1))?location.hash.slice(1):'general');
+document.getElementById('nav').innerHTML=sections.map(([id,n,icon])=>`<button data-page="${id}"><span class="nav-icon" aria-hidden="true">${navIcon(id)}</span><span>${n}</span></button>`).join('');document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.getElementById('settingsSearch').value='';filterSettings('');show(b.dataset.page,true)});show(location.hash.slice(1)&&document.getElementById(location.hash.slice(1))?location.hash.slice(1):(initial.initialSection||'general'));
 document.querySelectorAll('[data-setting]').forEach(el=>{const key=lower(el.dataset.setting),v=initial.settings[key];if(el.dataset.list)el.value=(v||[]).join('\n');else if(el.type==='checkbox')el.checked=!!v;else el.value=v??'';el.addEventListener('change',()=>{if(!el.checkValidity()){el.reportValidity();return}let value=el.dataset.list?el.value.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean):el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;if(el.dataset.setting==='ThemeMode')document.documentElement.dataset.theme=value;if(el.dataset.setting==='AccentColor')applyAccent(value);if(el.dataset.setting==='ReduceMotion')document.documentElement.classList.toggle('reduce-motion',!!value);post({type:'aero-settings-set',name:el.dataset.setting,value});toast('Сохранение…')})});
 const memorySize=n=>n<1048576?`${Math.max(0,Math.round(n/1024))} КБ`:`${(n/1048576).toFixed(n<104857600?1:0)} МБ`;const memory=initial.memorySaver;document.getElementById('memoryCurrent').textContent=`Сейчас ${memorySize(memory.currentBytes)}`;document.getElementById('memoryForecast').textContent=`Можно освободить ≈ ${memorySize(memory.estimatedSavingsBytes)}`;const protectedParts=[memory.protectedDownloads?`${memory.protectedDownloads} с загрузкой`:'',memory.protectedAudio?`${memory.protectedAudio} с аудио`:'',memory.protectedForms?`${memory.protectedForms} с формой`:''].filter(Boolean);document.getElementById('memoryStats').textContent=`${memory.eligibleTabs} вкладок доступно для оптимизации · ${memory.sleepingTabs} спят · ${memory.unloadedTabs} выгружено${protectedParts.length?' · Защищено: '+protectedParts.join(', '):''}`;
 const homeBackgroundPath=initial.settings.homeBackgroundImagePath||'';document.getElementById('homeBackgroundPath').textContent=homeBackgroundPath?homeBackgroundPath:'Картинка ещё не выбрана.';

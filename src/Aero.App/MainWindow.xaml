@@ -55,6 +55,34 @@
             <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackAccelerator_Invoked" />
             <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardAccelerator_Invoked" />
             <KeyboardAccelerator Key="Escape" Invoked="StopAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number6" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number7" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number8" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Number9" Modifiers="Control" Invoked="SelectTabByNumberAccelerator_Invoked" />
+            <KeyboardAccelerator Key="PageDown" Modifiers="Control" Invoked="NextTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="PageUp" Modifiers="Control" Invoked="PreviousTabAccelerator_Invoked" />
+            <KeyboardAccelerator Key="R" Modifiers="Control,Shift" Invoked="HardReloadAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F5" Modifiers="Control" Invoked="HardReloadAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F5" Modifiers="Shift" Invoked="HardReloadAccelerator_Invoked" />
+            <KeyboardAccelerator Key="D" Modifiers="Menu" Invoked="FocusAddressAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F6" Invoked="FocusAddressAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Home" Modifiers="Menu" Invoked="HomeAccelerator_Invoked" />
+            <KeyboardAccelerator Key="B" Modifiers="Control,Shift" Invoked="ToggleBookmarksBarAccelerator_Invoked" />
+            <KeyboardAccelerator Key="O" Modifiers="Control,Shift" Invoked="BookmarksLibraryAccelerator_Invoked" />
+            <KeyboardAccelerator Key="Delete" Modifiers="Control,Shift" Invoked="ClearBrowsingDataAccelerator_Invoked" />
+            <KeyboardAccelerator Key="W" Modifiers="Control,Shift" Invoked="CloseWindowAccelerator_Invoked" />
+            <KeyboardAccelerator Key="PageUp" Modifiers="Control,Shift" Invoked="MoveTabLeftAccelerator_Invoked" />
+            <KeyboardAccelerator Key="PageDown" Modifiers="Control,Shift" Invoked="MoveTabRightAccelerator_Invoked" />
+            <KeyboardAccelerator Key="A" Modifiers="Control,Shift" Invoked="SearchTabsAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F" Modifiers="Menu" Invoked="MainMenuAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F10" Invoked="MainMenuAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F12" Invoked="DevToolsAccelerator_Invoked" />
+            <KeyboardAccelerator Key="I" Modifiers="Control,Shift" Invoked="DevToolsAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
         <Grid.RowDefinitions>

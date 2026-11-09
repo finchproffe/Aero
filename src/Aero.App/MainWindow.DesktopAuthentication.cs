@@ -241,7 +241,7 @@ public sealed partial class MainWindow
                     using HttpRequestMessage request = new(HttpMethod.Get, currentUri);
                     request.Headers.TryAddWithoutValidation(
                         "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Aero/0.25.1.0");
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Aero/0.25.2.0");
                     request.Headers.TryAddWithoutValidation(
                         "Accept",
                         "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8");

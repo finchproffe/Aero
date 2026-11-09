@@ -10,7 +10,7 @@
   <Identity
     Name="Aero.Browser"
     Publisher="CN=Aero"
-    Version="0.25.1.0" />
+    Version="0.25.2.0" />
 
   <mp:PhoneIdentity
     PhoneProductId="63d541df-8bd0-4f28-87b5-3926e2f0e9b4"

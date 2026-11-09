@@ -769,6 +769,7 @@ public sealed partial class MainWindow : Window
         InitializeVaultExtensionsFeatures();
         InitializeSecureVaultFeatures();
         InitializeUBlockOriginIntegration();
+        AddressBox.ContextFlyout = BuildAddressBoxContextFlyout();
         _requestBlocker.FiltersChanged += RequestBlocker_FiltersChanged;
         OpenWindows.Add(this);
         Closed += MainWindow_Closed;
@@ -1526,7 +1527,8 @@ public sealed partial class MainWindow : Window
         Task passwordBridgeTask = RegisterPasswordCaptureBridgeAsync(state);
         Task zoomBridgeTask = RegisterPageZoomBridgeAsync(state);
         Task storeBridgeTask = RegisterExtensionStoreBridgeAsync(state);
-        await Task.WhenAll(passwordBridgeTask, zoomBridgeTask, storeBridgeTask);
+        Task cookieBannerTask = RegisterCookieBannerRejectAsync(state);
+        await Task.WhenAll(passwordBridgeTask, zoomBridgeTask, storeBridgeTask, cookieBannerTask);
 
         if (ensureCurrentDocumentBridges)
         {
@@ -4354,6 +4356,17 @@ public sealed partial class MainWindow : Window
 
         e.Handled = true;
         HideAddressSuggestions();
+        if (IsModifierDown(VirtualKey.Control))
+        {
+            SetAddressTextWithoutSuggestions(CompleteDotComAddress(AddressBox.Text));
+        }
+
+        if (IsModifierDown(VirtualKey.Menu))
+        {
+            NavigateFromAddressBoxInNewTab();
+            return;
+        }
+
         NavigateFromAddressBox();
     }
 
@@ -5219,6 +5232,12 @@ public sealed partial class MainWindow : Window
     {
         if (_closedTabs.Count == 0)
         {
+            // Nothing closed in this window yet (e.g. right after a restart): reopen the newest
+            // visited page that is not already open instead of silently doing nothing.
+            if (!_isPrivateWindow && FindRecentPageNotOpen() is Uri recent)
+            {
+                await CreateTabAsync(recent, selectTab: true);
+            }
             return;
         }
 
@@ -5236,6 +5255,25 @@ public sealed partial class MainWindow : Window
         }
         UpdateTabWidths();
         UpdateAllTabVisuals();
+    }
+
+    private Uri? FindRecentPageNotOpen()
+    {
+        HashSet<string> open = _tabs
+            .Select(tab => (tab.CurrentUri ?? tab.PendingUri)?.AbsoluteUri)
+            .OfType<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (HistoryEntry entry in _dataStore.Library.History.Take(200))
+        {
+            if (Uri.TryCreate(entry.Url, UriKind.Absolute, out Uri? uri) &&
+                IsBrowsableUri(uri) &&
+                !open.Contains(uri.AbsoluteUri))
+            {
+                return uri;
+            }
+        }
+
+        return null;
     }
 
     private void GoBack()

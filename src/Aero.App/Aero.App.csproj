@@ -5,8 +5,8 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Aero.App</RootNamespace>
     <AssemblyName>Aero</AssemblyName>
-    <Version>0.25.1.0</Version>
-    <FileVersion>0.25.1.0</FileVersion>
+    <Version>0.25.2.0</Version>
+    <FileVersion>0.25.2.0</FileVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AeroIcon.ico</ApplicationIcon>
     <UseWinUI>true</UseWinUI>

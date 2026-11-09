@@ -310,5 +310,17 @@
   "Ui.Delete": "Удалить",
   "Ui.A lighter way to browse.": "Всё нужное — в одном браузере.",
   "Ui.Private browsing. Local session data is removed when this window closes.": "Приватный просмотр. Данные сеанса удаляются при закрытии окна.",
-  "Ui.Guest browsing. This profile is removed when its last window closes.": "Гостевой режим. Профиль удаляется после закрытия последнего окна."
+  "Ui.Guest browsing. This profile is removed when its last window closes.": "Гостевой режим. Профиль удаляется после закрытия последнего окна.",
+  "Ui.Open link in new tab": "Открыть ссылку в новой вкладке",
+  "Ui.Open image in new tab": "Открыть картинку в новой вкладке",
+  "Ui.Search the web for": "Найти в интернете",
+  "Ui.Open page in new tab": "Открыть страницу в новой вкладке",
+  "Ui.Copy page address": "Копировать адрес страницы",
+  "Ui.Download video with Aero": "Скачать видео через Aero",
+  "Ui.Download audio with Aero": "Скачать аудио через Aero",
+  "Ui.Cut": "Вырезать",
+  "Ui.Copy": "Копировать",
+  "Ui.Paste": "Вставить",
+  "Ui.Paste and go": "Вставить и перейти",
+  "Ui.Select all": "Выделить всё"
 }

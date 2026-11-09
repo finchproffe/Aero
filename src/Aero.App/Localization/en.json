@@ -206,6 +206,8 @@
   "Html.Косметическая фильтрация": "Cosmetic filtering",
   "Html.Автообновление списков": "Auto-update lists",
   "Html.Очищать tracking-параметры": "Remove tracking parameters",
+  "Html.Отклонять cookie-баннеры": "Reject cookie banners",
+  "Html.Нажимает «Отклонить все», если такая кнопка есть. Для новых вкладок": "Clicks \"Reject all\" when the banner has one. Applies to new tabs",
   "Html.Исключения": "Exceptions",
   "Html.Пользовательские фильтры": "Custom filters",
   "Html.Обновить списки": "Update lists",

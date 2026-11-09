@@ -23,10 +23,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <DebugType>embedded</DebugType>
-    <Version>0.25.1.0</Version>
-    <FileVersion>0.25.1.0</FileVersion>
-    <AssemblyVersion>0.25.1.0</AssemblyVersion>
-    <InformationalVersion>0.25.1.0</InformationalVersion>
+    <Version>0.25.2.0</Version>
+    <FileVersion>0.25.2.0</FileVersion>
+    <AssemblyVersion>0.25.2.0</AssemblyVersion>
+    <InformationalVersion>0.25.2.0</InformationalVersion>
     <IncludeAeroSecurityDriverPanel
       Condition="'$(IncludeAeroSecurityDriverPanel)' == ''">true</IncludeAeroSecurityDriverPanel>
   </PropertyGroup>

@@ -27,7 +27,9 @@ public static class WebViewEnvironmentFactory
         Directory.CreateDirectory(userDataFolder);
         CoreWebView2EnvironmentOptions options = new()
         {
-            AreBrowserExtensionsEnabled = enableBrowserExtensions
+            AreBrowserExtensionsEnabled = enableBrowserExtensions,
+            // Pages may not start sound until the user interacts with them; muted autoplay still works.
+            AdditionalBrowserArguments = "--autoplay-policy=document-user-activation-required"
         };
 
         CoreWebView2Environment environment = await

@@ -56,6 +56,15 @@ public sealed partial class MainWindow
                 Uri.TryCreate(args.ContextMenuTarget.LinkUri, UriKind.Absolute, out Uri? linkUri) &&
                 IsBrowsableUri(linkUri))
             {
+                AddAeroContextMenuItem(
+                    core,
+                    items,
+                    "Open link in new tab",
+                    async () =>
+                    {
+                        await CreateTabAsync(linkUri, selectTab: false);
+                    });
+
                 CoreWebView2ContextMenuItem containerMenu = core.Environment.CreateContextMenuItem(
                     Localization.AeroLocalizer.TranslateUi("Open link in container"),
                     null!,
@@ -73,7 +82,36 @@ public sealed partial class MainWindow
                 items.Add(containerMenu);
             }
 
+            if (args.ContextMenuTarget.HasSelection &&
+                args.ContextMenuTarget.SelectionText?.Trim() is { Length: > 0 } selection)
+            {
+                string preview = selection.Length > 32 ? selection[..32] + "…" : selection;
+                AddAeroContextMenuItem(
+                    core,
+                    items,
+                    $"{Localization.AeroLocalizer.TranslateUi("Search the web for")} “{preview.ReplaceLineEndings(" ")}”",
+                    async () =>
+                    {
+                        await CreateTabAsync(BuildSearchUri(selection), selectTab: true);
+                    });
+            }
+
             CoreWebView2ContextMenuTargetKind targetKind = args.ContextMenuTarget.Kind;
+            if (targetKind == CoreWebView2ContextMenuTargetKind.Image &&
+                args.ContextMenuTarget.HasSourceUri &&
+                Uri.TryCreate(args.ContextMenuTarget.SourceUri, UriKind.Absolute, out Uri? imageUri) &&
+                IsBrowsableUri(imageUri))
+            {
+                AddAeroContextMenuItem(
+                    core,
+                    items,
+                    "Open image in new tab",
+                    async () =>
+                    {
+                        await CreateTabAsync(imageUri, selectTab: false);
+                    });
+            }
+
             if (targetKind is CoreWebView2ContextMenuTargetKind.Audio or CoreWebView2ContextMenuTargetKind.Video ||
                 state.HasMedia)
             {
@@ -133,7 +171,7 @@ public sealed partial class MainWindow
         Func<Task> action)
     {
         CoreWebView2ContextMenuItem item = core.Environment.CreateContextMenuItem(
-            label,
+            Localization.AeroLocalizer.TranslateUi(label),
             null!,
             CoreWebView2ContextMenuItemKind.Command);
 

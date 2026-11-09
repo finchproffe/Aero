@@ -319,6 +319,8 @@ public sealed class BrowserSettings
 
     public bool CleanTrackingLinks { get; set; } = true;
 
+    public bool RejectCookieBanners { get; set; } = true;
+
     public bool SleepBackgroundTabs { get; set; } = true;
 
     public bool KeepAudioTabsAwake { get; set; } = true;
