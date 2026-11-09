@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aero — тихий браузер для Windows</title>
+<meta name="description" content="Aero — браузер для Windows без рекламы, ленты и телеметрии. Cookies и пароли заперты так, что скопированные стиллером файлы ничего не дают.">
+<meta name="theme-color" content="#9cc3ea">
+<link rel="icon" href="assets/aero-icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:slnt,wght,CRSV,SHRP@-12..0,100..900,0..1,0..100&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Logo geometry from .github/brand/aero-mark.svg -->
+<svg class="defs" aria-hidden="true" width="0" height="0">
+  <defs>
+    <path id="flow" d="M86 136 Q 160 135 234 117 Q 162 160 86 158 Z"/>
+    <clipPath id="right-of-apex"><rect x="140" y="0" width="116" height="256"/></clipPath>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="#fff"/>
+      <use href="#flow" fill="#000" stroke="#000" stroke-width="18" stroke-linejoin="round" clip-path="url(#right-of-apex)"/>
+    </mask>
+    <symbol id="mark" viewBox="40 40 200 176">
+      <path d="M64 198 L132 56 L196 198" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" mask="url(#gap)"/>
+      <use href="#flow" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="sky" aria-hidden="true"><div class="stars"></div></div>
+
+<header class="top">
+  <a class="brand" href="#takeoff"><svg aria-hidden="true"><use href="#mark"/></svg>Aero</a>
+  <a class="get" href="https://github.com/finchproffe/Aero/releases">Скачать</a>
+</header>
+
+<main>
+
+<!-- Takeoff: a wind tunnel. Air flows around the A; the cursor stirs it. -->
+<section id="takeoff" class="hero" data-sky="day" data-scroll="pin">
+  <div class="hero-stage">
+    <canvas id="tunnel" aria-hidden="true"></canvas>
+    <svg class="hero-a" aria-hidden="true"><use href="#mark"/></svg>
+    <div class="hero-text">
+      <h1 class="windy">Тихий браузер, который стиллеру не&nbsp;по&nbsp;зубам</h1>
+      <p class="lede">Aero для Windows 10 и 11. Без рекламы, ленты и телеметрии. Пароли лежат в Aero Vault и открываются только вашим лицом, отпечатком или PIN на этом компьютере.</p>
+      <div class="actions">
+        <a class="btn solid" href="https://github.com/finchproffe/Aero/releases">Скачать для Windows</a>
+        <a class="btn" href="https://github.com/finchproffe/Aero">Код на GitHub</a>
+      </div>
+      <p class="small">Версия 0.25.1, ранний доступ. Открытый код под MPL-2.0.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Quiet: the usual browser clutter gets blown off the screen as you scroll -->
+<section id="quiet" class="quiet" data-sky="day" data-scroll="pin">
+  <div class="sticky">
+    <h2>Мы выдули из браузера всё лишнее</h2>
+    <div class="quiet-stage">
+      <figure class="newtab">
+        <img src="assets/screens/newtab-dark.png" alt="Новая вкладка Aero: строка поиска и кнопка добавления ярлыка" width="1426" height="893">
+      </figure>
+      <ul class="clutter" aria-label="Чего нет в Aero">
+        <li style="--x:4%;--y:8%">Лента новостей</li>
+        <li style="--x:58%;--y:4%">Реклама</li>
+        <li style="--x:30%;--y:24%">Спонсорские ярлыки</li>
+        <li style="--x:2%;--y:44%">Обязательный аккаунт</li>
+        <li style="--x:60%;--y:38%">Телеметрия</li>
+        <li style="--x:22%;--y:64%">ИИ-ассистент в углу</li>
+        <li style="--x:56%;--y:72%">«Сделайте нас браузером по умолчанию»</li>
+      </ul>
+    </div>
+    <p class="quiet-after">Осталась строка поиска и ваши ярлыки.</p>
+  </div>
+</section>
+
+<!-- Storm: how saved passwords get stolen, and where Aero stops it -->
+<section id="theft" class="theft" data-sky="storm" data-scroll="pin">
+  <div class="sticky">
+    <div class="theft-text">
+      <h2>Так сегодня крадут сохранённые пароли</h2>
+      <ol class="steps">
+        <li data-at="0">Стиллер запускается от вашего имени. Права администратора ему не нужны.</li>
+        <li data-at="0.2">Копирует файл Login Data, где браузер хранит пароли.</li>
+        <li data-at="0.42">Расшифровывает его тем же ключом Windows, что и браузер.</li>
+        <li data-at="0.62">Через минуту у него список всех ваших логинов и паролей.</li>
+      </ol>
+      <p class="aero-turn" data-at="0.8"><b>В Aero этот файл пуст.</b> Пароли лежат в Aero Vault, а его не открыть без вас и не на вашем компьютере.</p>
+    </div>
+    <div class="heist" aria-hidden="true">
+      <div class="zone you"><span>Ваш компьютер</span></div>
+      <div class="zone thief"><span>Сервер стиллера</span></div>
+      <div class="cookiefile ghost"></div>
+      <div class="cookiefile live">
+        <div class="cf-head">Login Data</div>
+        <pre class="cf-body"></pre>
+        <div class="cf-stamp bad" data-at="0.62">Все пароли открытым текстом</div>
+        <div class="cf-stamp good" data-at="0.86">Пусто. Пароли в Aero Vault</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Night: three keys as Borromean rings. No two are linked; only all three hold together. -->
+<section id="vault" class="vault" data-sky="night" data-scroll="pin">
+  <div class="sticky">
+    <h2>Aero Vault открывается тремя ключами сразу</h2>
+    <div class="rings">
+      <svg viewBox="-200 -190 400 380" aria-hidden="true" data-at="0.66">
+        <defs>
+          <linearGradient id="g-hello" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c3d8ff"/><stop offset="1" stop-color="#5b8def"/></linearGradient>
+          <linearGradient id="g-tpm" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2fb383"/><stop offset="1" stop-color="#a6f0cb"/></linearGradient>
+          <linearGradient id="g-dpapi" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#e8913a"/><stop offset="1" stop-color="#f7d58e"/></linearGradient>
+          <radialGradient id="g-core"><stop offset="0" stop-color="#9ec1ff" stop-opacity=".55"/><stop offset="1" stop-color="#9ec1ff" stop-opacity="0"/></radialGradient>
+          <!-- Each ring is cut where the next one passes over it: Hello over TPM, TPM over DPAPI, DPAPI over Hello. -->
+          <mask id="under-hello" maskUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400"><rect x="-200" y="-200" width="400" height="400" fill="#fff"/><circle cx="0" cy="-57.74" r="90" fill="none" stroke="#000" stroke-width="27"/></mask>
+          <mask id="under-tpm" maskUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400"><rect x="-200" y="-200" width="400" height="400" fill="#fff"/><circle cx="-50" cy="28.87" r="90" fill="none" stroke="#000" stroke-width="27"/></mask>
+          <mask id="under-dpapi" maskUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400"><rect x="-200" y="-200" width="400" height="400" fill="#fff"/><circle cx="50" cy="28.87" r="90" fill="none" stroke="#000" stroke-width="27"/></mask>
+        </defs>
+        <circle class="core-glow" r="70" fill="url(#g-core)" data-at="0.7"/>
+        <g class="ring r-dpapi" style="--ux:.866;--uy:.5;--start:.15"><circle class="band" cx="50" cy="28.87" r="90" pathLength="1" stroke="url(#g-dpapi)"/></g>
+        <g class="ring r-tpm" style="--ux:-.866;--uy:.5;--start:.08"><circle class="band" cx="-50" cy="28.87" r="90" pathLength="1" stroke="url(#g-tpm)"/></g>
+        <g class="ring r-hello" style="--ux:0;--uy:-1;--start:0"><circle class="band" cx="0" cy="-57.74" r="90" pathLength="1" stroke="url(#g-hello)"/></g>
+        <use class="core" href="#mark" x="-22" y="-14" width="44" height="39" data-at="0.7"/>
+      </svg>
+      <div class="ring-labels">
+        <p class="ring-label hello" data-at="0.06"><i></i><b>Windows Hello</b>лицо, отпечаток или PIN</p>
+        <p class="ring-label tpm" data-at="0.14"><i></i><b>TPM</b>ключ не покидает этот компьютер</p>
+        <p class="ring-label dpapi" data-at="0.22"><i></i><b>DPAPI</b>только ваша учётная запись</p>
+      </div>
+    </div>
+    <p class="vault-foot" data-at="0.76">Любые два ключа без третьего ничего не открывают. Скопированный файл хранилища — просто шум.</p>
+  </div>
+</section>
+
+<!-- Night: what happens when you actually use a password -->
+<section id="vault-use" class="vuse" data-sky="night" data-scroll="pin">
+  <div class="sticky">
+    <ol class="acts">
+      <li class="act" data-at="0">
+        <h2>Пароль показывается не в браузере</h2>
+        <p>Кнопка «Показать» запускает отдельный одноразовый процесс. Его окно скрыто от записи экрана, а сам браузер пароль так и не видит.</p>
+      </li>
+      <li class="act" data-at="0.34">
+        <h2>Ключ живёт одну операцию</h2>
+        <p>У хранилища нет режима «открыто на 15 минут». Для каждого заполнения создаётся свой ключ и сразу уничтожается, а пароль в памяти затирается нулями.</p>
+      </li>
+      <li class="act" data-at="0.67">
+        <h2>Пароль подставляется только на настоящий сайт</h2>
+        <p>Aero заполняет пароль только для того адреса и документа, где его сохранили. На IP-адресах, локальных сайтах и доменах-двойниках он отказывается.</p>
+      </li>
+    </ol>
+    <div class="vstage" aria-hidden="true">
+      <div class="scene s1" data-at="0">
+        <div class="mock browser">
+          <div class="mock-bar"><i></i><span>Пароли</span></div>
+          <div class="row-pw"><b>почта</b><span>you@example.com</span><span class="dots">••••••••••</span><span class="btn-show">Показать</span></div>
+          <div class="row-pw"><b>банк</b><span>you</span><span class="dots">••••••••••</span><span class="btn-show dim">Показать</span></div>
+        </div>
+        <div class="mock broker" data-at="0.1">
+          <div class="mock-bar"><i></i><span>Aero Security Broker</span></div>
+          <div class="broker-pw">correct-horse-7</div>
+          <div class="broker-note">Окно скрыто от записи экрана</div>
+        </div>
+        <div class="rec" data-at="0.18">
+          <div class="rec-label"><i></i>Так это видит запись экрана</div>
+          <div class="rec-view"><div class="rec-browser"></div><div class="rec-black"></div></div>
+        </div>
+      </div>
+      <div class="scene s2" data-at="0.34">
+        <div class="lease">
+          <div class="lease-step" data-at="0.42"><svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg>Ключ создан</div>
+          <div class="lease-step" data-at="0.5"><svg viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></svg>Пароль подставлен</div>
+          <div class="lease-step burn" data-at="0.58"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>Ключ уничтожен</div>
+          <div class="lease-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="scene s3" data-at="0.67">
+        <div class="mock fill ok" data-at="0.72">
+          <div class="addr"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>login.example.com</div>
+          <div class="field"><span class="typed">you@example.com</span></div>
+          <div class="field"><span class="typed">••••••••••</span></div>
+          <div class="verdict">Заполнено</div>
+        </div>
+        <div class="mock fill bad" data-at="0.84">
+          <div class="addr"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>login.xn--exmple-4nf.com</div>
+          <div class="field"></div>
+          <div class="field"></div>
+          <div class="verdict">Не заполняю: адрес похож на подделку</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Night: the rest of the browser around the vault -->
+<section id="layers" class="layers" data-sky="night" data-scroll="pin">
+  <div class="sticky">
+    <div class="layers-text">
+      <h2>И ещё шесть слоёв вокруг браузера</h2>
+      <ul class="layer-list">
+        <li data-at="0.04"><b>Одна копия паролей.</b> Встроенное сохранение паролей WebView2 выключено, файл Login Data пуст.</li>
+        <li data-at="0.18"><b>Отдельный процесс для показа пароля.</b> По желанию его дополнительно защищает драйвер ядра.</li>
+        <li data-at="0.32"><b>Сессии сайтов не лежат на диске открыто.</b> Ключ к ним выдаётся только Aero.exe.</li>
+        <li data-at="0.46"><b>Windows Hello при запуске.</b> Если хотите, вход на сайты тоже закрывается лицом, отпечатком или PIN.</li>
+        <li data-at="0.6"><b>Проверка запуска.</b> Подменить профиль или открыть порт отладки через настройки Windows не выйдет.</li>
+        <li data-at="0.74"><b>Защита процесса.</b> Другие программы не могут читать память Aero и запускать в нём свой код.</li>
+      </ul>
+    </div>
+    <div class="radar" aria-hidden="true">
+      <svg viewBox="-200 -200 400 400">
+        <circle r="190" data-at="0.74"/><circle r="158" data-at="0.6"/><circle r="126" data-at="0.46"/>
+        <circle r="94" data-at="0.32"/><circle r="62" data-at="0.18"/><circle r="30" data-at="0.04"/>
+        <line x1="-196" x2="196"/><line y1="-196" y2="196"/>
+      </svg>
+      <div class="sweep"></div>
+      <i class="blip" style="--a:38deg;--r:72px" data-at="0.18"></i>
+      <i class="blip" style="--a:160deg;--r:110px" data-at="0.32"></i>
+      <i class="blip" style="--a:250deg;--r:140px" data-at="0.46"></i>
+      <i class="blip" style="--a:300deg;--r:170px" data-at="0.6"></i>
+      <i class="blip" style="--a:95deg;--r:185px" data-at="0.74"></i>
+    </div>
+  </div>
+</section>
+
+<section id="compare" class="compare" data-sky="night">
+  <div class="wrap">
+    <h2>Что достанется стиллеру в настройках по умолчанию</h2>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Сравнение браузеров">
+      <table>
+        <thead><tr><th scope="col"><span class="sr">Приём стиллера</span></th><th scope="col">Firefox<sup>1</sup></th><th scope="col">Программа на Chromium<sup>2</sup></th><th scope="col">Chrome 127+</th><th scope="col" class="us">Aero</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Скопировать сохранённые пароли и расшифровать их</th><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i></td><td><i class="part">частично</i><sup>3</sup></td><td class="us"><i class="yes">защищено</i></td></tr>
+          <tr><th scope="row">Скопировать cookies и расшифровать их</th><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i></td><td><i class="yes">защищено</i></td><td class="us"><i class="yes">защищено</i></td></tr>
+          <tr><th scope="row">Перезапустить браузер с портом отладки и выгрузить cookies</th><td><i class="na">не применимо</i></td><td><i class="no">не защищено</i></td><td><i class="yes">защищено</i><sup>4</sup></td><td class="us"><i class="yes">защищено</i></td></tr>
+          <tr><th scope="row">Прочитать память браузера или внедрить в него код</th><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i><sup>5</sup></td><td class="us"><i class="part">частично</i></td></tr>
+          <tr><th scope="row">Действовать с правами администратора</th><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i></td><td><i class="no">не защищено</i></td><td class="us"><i class="no">не защищено</i></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="notes"><sup>1</sup> Профиль без основного пароля. <sup>2</sup> Браузер или программа на WebView2, которые полагаются только на DPAPI. <sup>3</sup> Зависит от версии Chrome. <sup>4</sup> С Chrome 136 для профиля по умолчанию. <sup>5</sup> Это публично описанный обход защиты Chrome. Сравнение по открытым данным о настройках по умолчанию; другие браузеры меняются от версии к версии.</p>
+  </div>
+</section>
+
+<!-- Dawn: the everyday browser -->
+<section id="everyday" class="everyday" data-sky="dawn">
+  <div class="wrap">
+    <h2>А всё привычное на месте</h2>
+    <div class="prose-2">
+      <p><b>Вкладки не жрут память.</b> Фоновые засыпают, у каждой видно, сколько она тратит, а после перезапуска сессия поднимается постепенно.</p>
+      <p><b>Порядок на ваш вкус.</b> Рабочие пространства, группы, разделённый экран, контейнеры и приватные окна.</p>
+      <p><b>Переезд за пару минут.</b> Закладки, пароли и история из Chrome, Edge, Яндекс Браузера, Brave, Vivaldi, Opera и Firefox.</p>
+      <p><b>Работает сразу.</b> Видео с защитой (Widevine, PlayReady), ключи доступа, перевод страницы в один клик, блокировщик рекламы Shield.</p>
+    </div>
+  </div>
+</section>
+
+<section class="gallery" data-sky="dawn" data-scroll="pin" data-hscroll>
+  <div class="sticky">
+    <div class="track">
+      <figure class="shot"><img src="assets/screens/site.png" alt="Aero со статьёй в Википедии" loading="lazy"><figcaption>Обычная страница. Значок Shield в адресной строке показывает, что блокировщик работает.</figcaption></figure>
+      <figure class="shot"><img src="assets/screens/split.png" alt="Разделённый экран: две страницы рядом" loading="lazy"><figcaption>Разделённый экран: две страницы в одном окне.</figcaption></figure>
+      <figure class="shot"><img src="assets/screens/shield.png" alt="Панель Shield для открытого сайта" loading="lazy"><figcaption>Shield для конкретного сайта: что заблокировано и как его выключить.</figcaption></figure>
+      <figure class="shot"><img src="assets/screens/tabs.png" alt="Окно Aero с пятью вкладками" loading="lazy"><figcaption>Пять вкладок, фоновые уже спят.</figcaption></figure>
+      <figure class="shot"><img src="assets/screens/newtab-light.png" alt="Новая вкладка Aero в светлой теме" loading="lazy"><figcaption>Светлая тема тоже есть.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="sync" class="sync" data-sky="dawn">
+  <div class="wrap">
+    <h2>Синхронизация через облачную папку, которая у вас уже есть</h2>
+    <svg class="syncmap" viewBox="0 0 960 400" role="img" aria-label="Три компьютера обмениваются зашифрованными файлами через вашу облачную папку">
+      <defs>
+        <g id="laptop">
+          <rect x="-46" y="-58" width="92" height="60" rx="7" class="lt-screen"/>
+          <rect x="-40" y="-52" width="80" height="48" rx="3" class="lt-glass"/>
+          <use href="#mark" x="-11" y="-38" width="22" height="20" class="lt-logo"/>
+          <path d="M-58 4 h116 l-8 9 h-100 z" class="lt-base"/>
+        </g>
+        <g id="chip">
+          <rect x="-15" y="-11" width="30" height="22" rx="6" class="chip-body"/>
+          <rect x="-5" y="-2" width="10" height="8" rx="1.5" class="chip-lock"/>
+          <path d="M-3 -2 v-2.5 a3 3 0 0 1 6 0 v2.5" class="chip-shackle"/>
+        </g>
+      </defs>
+      <path id="r1" class="route" d="M200 252 C 200 196, 440 206, 440 150"/>
+      <path id="r2" class="route" d="M480 252 L 480 150"/>
+      <path id="r3" class="route" d="M760 252 C 760 196, 520 206, 520 150"/>
+      <g class="cloud-g">
+        <path class="cloud" d="M392 150 h176 a38 38 0 0 0 0 -76 a58 58 0 0 0 -110 -22 a42 42 0 0 0 -66 30 a34 34 0 0 0 0 68 z"/>
+        <text class="cloud-label" x="480" y="122">Ваша папка</text>
+      </g>
+      <use href="#laptop" x="200" y="310"/>
+      <use href="#laptop" x="480" y="310"/>
+      <use href="#laptop" x="760" y="310"/>
+      <text class="dev" x="200" y="352">Дома</text>
+      <text class="dev" x="480" y="352">Новый ноутбук</text>
+      <text class="dev" x="760" y="352">На работе</text>
+      <text class="cloud-sub" x="480" y="392">OneDrive, Яндекс Диск, Google Drive, Dropbox или Syncthing</text>
+      <use href="#chip" class="pkt up q1"/>
+      <use href="#chip" class="pkt up q1 late"/>
+      <use href="#chip" class="pkt down q2"/>
+      <use href="#chip" class="pkt down q3"/>
+      <use href="#chip" class="pkt up q3 late"/>
+    </svg>
+    <div class="prose-2">
+      <p><b>Ни облако, ни мы не видим содержимого.</b> Всё в папке зашифровано AES-256-GCM ключами из вашей фразы (PBKDF2-SHA256, 600&nbsp;000 раундов). Сервера Aero нет, аккаунт не нужен.</p>
+      <p><b>Конфликтов не бывает.</b> Каждый компьютер пишет только в свой файл и читает чужие. Закладки синхронизируются сами раз в пару минут, пароли — по запросу, с фразой и Windows Hello.</p>
+      <p><b>Новый компьютер подтянет всё сам.</b> Укажите ту же папку и фразу, и хранилище вернётся. Пустой компьютер никогда не затирает остальные.</p>
+      <p class="muted">Пока не синхронизируются история, открытые вкладки и порядок закладок. Приложения для телефона нет.</p>
+    </div>
+  </div>
+</section>
+
+<section id="limits" class="limits" data-sky="day">
+  <div class="wrap">
+    <p class="figures">Служба, которая выдаёт ключ, стартует за <b data-count="60">60</b>&nbsp;мс, если запущена — за <b data-count="1">1</b>&nbsp;мс, занимает <b data-count="8.5">8,5</b>&nbsp;МБ и выгружается через минуту простоя.</p>
+    <h2>От чего Aero пока не спасает</h2>
+    <div class="prose-2">
+      <p><b>От кода, уже внедрённого в запущенный Aero.</b> Как и защита Chrome, эта защита не даёт украсть файлы, но не помогает против того, что уже внутри браузера.</p>
+      <p><b>От чтения памяти WebView2.</b> Пока Aero работает, cookies лежат в памяти сетевого процесса WebView2, а его могут читать другие программы пользователя.</p>
+      <p><b>От вирусов с правами администратора.</b> Против них обычная программа бессильна. Необязательный драйвер пока защищает только окно с паролями.</p>
+      <p><b>В сборках для разработчиков.</b> Без MSIX нет службы ключей, и хранилище cookies выключено, пока не включён Windows Hello.</p>
+    </div>
+    <p class="notes">Aero — ранняя версия, независимого аудита ещё не было. Не храните в нём аккаунты, потерю которых нельзя себе позволить. Нашли уязвимость? Напишите по инструкции в <a href="https://github.com/finchproffe/Aero/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+  </div>
+</section>
+
+<!-- Landing: the mark flies in and settles -->
+<section id="landing" class="landing" data-sky="day" data-scroll="view">
+  <svg class="land-a" aria-hidden="true"><use href="#mark"/></svg>
+  <h2>Попробуйте Aero</h2>
+  <p>Windows 10 и 11, 64 бита. Версия 0.25.1.</p>
+  <div class="actions">
+    <a class="btn solid" href="https://github.com/finchproffe/Aero/releases">Скачать с GitHub</a>
+    <a class="btn" href="https://github.com/finchproffe/Aero">Посмотреть код</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <span>© 2026 finchproffe. Код открыт по лицензии <a href="https://github.com/finchproffe/Aero/blob/main/LICENSE">MPL-2.0</a>.</span>
+  <span>Vault is Powered by Aero</span>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
