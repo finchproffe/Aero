@@ -15,6 +15,7 @@ public sealed record BrowserProfile(
 public static class BrowserProfileManager
 {
     public const string DefaultProfileId = "default";
+    public const string AvatarFileName = "avatar.png";
     public static IReadOnlyList<string> AvailableIcons { get; } =
     [
         "●", "🙂", "😎", "🧭", "🌊", "🌙", "☀️", "⭐",
@@ -84,6 +85,29 @@ public static class BrowserProfileManager
             EnsureProfileFolders(profile);
             return profile;
         }
+    }
+
+    /// <summary>The custom photo that replaces the emoji icon, if the profile has one.</summary>
+    public static string? GetAvatarPath(BrowserProfile profile)
+    {
+        string path = Path.Combine(profile.StorageRoot, AvatarFileName);
+        return File.Exists(path) ? path : null;
+    }
+
+    /// <summary>Stores an already re-encoded PNG as the profile photo; null removes it.</summary>
+    public static void SetAvatar(BrowserProfile profile, byte[]? png)
+    {
+        string path = Path.Combine(profile.StorageRoot, AvatarFileName);
+        if (png is null)
+        {
+            File.Delete(path);
+            return;
+        }
+
+        Directory.CreateDirectory(profile.StorageRoot);
+        string temporaryPath = path + ".tmp";
+        File.WriteAllBytes(temporaryPath, png);
+        File.Move(temporaryPath, path, overwrite: true);
     }
 
     public static BrowserProfile? Update(string id, string? name, string? icon)

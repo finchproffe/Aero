@@ -1303,6 +1303,7 @@ public sealed partial class MainWindow : Window
         header.ContextFlyout = BuildTabContextFlyout(state);
 
         state.Header = header;
+        RestyleFontsIn(header); // tab headers are built in code after the style's fonts were applied
         state.HeaderTransform = headerTransform;
         state.ContentGrid = content;
         state.IconColumn = iconColumn;
@@ -2001,6 +2002,7 @@ public sealed partial class MainWindow : Window
         UpdateTabIconPresentation(state);
         state.Icon.Glyph = "\uE80F";
         ToolTipService.SetToolTip(state.Header, DisplayTabTitle("New tab"));
+        ApplyPageBackdrop(state, aeroPage: true);
         state.Browser.NavigateToString(BuildNewTabPageHtml());
         SaveSessionSnapshot();
     }
@@ -2014,6 +2016,7 @@ public sealed partial class MainWindow : Window
         }
 
         state.InternalPageAddress = null;
+        ApplyPageBackdrop(state, aeroPage: false);
         Uri secureUri = UpgradeToHttpsIfNeeded(uri);
         Uri target = _settings.CleanTrackingLinks &&
             !IsGoogleSessionCriticalHost(secureUri.Host) &&
@@ -2156,6 +2159,7 @@ public sealed partial class MainWindow : Window
         if (documentClassification.ShouldClearInternalPageAddress)
         {
             state.InternalPageAddress = null;
+            ApplyPageBackdrop(state, aeroPage: false);
         }
 
         if (args.IsRedirected &&
@@ -4100,6 +4104,17 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (IsVerticalTabStrip)
+        {
+            // Sidebar rows always span the sidebar, pinned tabs included.
+            foreach (BrowserTabState state in _tabs)
+            {
+                state.Header.Width = TabScrollViewer.MaxWidth;
+            }
+
+            return;
+        }
+
         double pinnedWidth = Math.Max(Math.Clamp(_settings.PinnedTabWidth, 36, 80), ConfiguredTabBarHeight);
         List<BrowserTabState> visibleTabs = _tabs.Where(IsTabVisibleInStrip).ToList();
         int pinnedCount = visibleTabs.Count(IsTabEffectivelyPinned);
@@ -5218,7 +5233,7 @@ public sealed partial class MainWindow : Window
             ? AppWindowPresenterKind.FullScreen
             : AppWindowPresenterKind.Overlapped);
 
-        TitleBarRow.Height = new GridLength(_isFullscreen ? 0 : ConfiguredTabBarHeight);
+        ApplyTabStripPosition();
         ToolbarRow.Height = new GridLength(
             _isFullscreen
                 ? 0
@@ -5330,6 +5345,7 @@ public sealed partial class MainWindow : Window
             _ => ElementTheme.Dark
         };
 
+        ApplyInterfaceStyle();
         UpdateTitleBarColors();
         UpdateAllTabVisuals();
         ApplyProfileSettingsUi();
@@ -5378,6 +5394,7 @@ public sealed partial class MainWindow : Window
         TitleBarDragRegion.MinWidth = dragWidth;
         TitleBarSurface.ColumnDefinitions[3].MinWidth = dragWidth;
         TabScrollViewer.MaxWidth = Math.Max(0, availableWidth - dragWidth);
+        UpdateTabStripViewport();
         TabDragOverlay.Width = Math.Max(RootGrid.ActualWidth, TitleBarSurface.ActualWidth);
         TabDragOverlay.Height = Math.Max(
             RootGrid.ActualHeight,
@@ -5577,7 +5594,7 @@ public sealed partial class MainWindow : Window
         }
 
         // Last, so the large font payload is not rescanned by every token replacement above.
-        return html.Replace(AeroFontFaceToken, GetAeroFontFaceCss(), StringComparison.Ordinal);
+        return InjectStylePageCss(html.Replace(AeroFontFaceToken, GetAeroFontFaceCss(), StringComparison.Ordinal), "home");
     }
 
     private readonly record struct HomeBackgroundPresentation(

@@ -260,6 +260,12 @@ Require(BrokerProcessHardening.IsTrustedModulePath(
         writableBrokerDirectory,
         [immutablePackageRoot]),
     "A whitelisted development Broker module was rejected.");
+// Development builds run from a writable folder: Windows App SDK natives are trusted only by signature.
+string signedNative = Path.Combine(AppContext.BaseDirectory, "WinUIEdit.dll");
+Require(!File.Exists(signedNative) || BrokerModuleSignature.IsMicrosoftSigned(signedNative),
+    "A Microsoft-signed Windows App SDK module was rejected.");
+Require(!BrokerModuleSignature.IsMicrosoftSigned(typeof(BrokerProcessHardening).Assembly.Location),
+    "An unsigned Broker assembly passed the Microsoft signature check.");
 
 MethodInfo? tryActivate = typeof(AeroSecurityKernelProtection).GetMethod(
     "TryActivate",

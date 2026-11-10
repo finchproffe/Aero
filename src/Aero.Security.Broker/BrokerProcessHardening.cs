@@ -27,6 +27,8 @@ internal sealed class BrokerProcessHardening : IDisposable
     private readonly HashSet<string> _knownModulePaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _brokerDirectory;
     private readonly string[] _trustedReadOnlyRoots;
+    private readonly string[] _signedModuleRoots;
+    private string? _lastUntrustedModule;
     private readonly IntPtr _notificationEvent;
     private readonly Thread _moduleMonitor;
 
@@ -44,6 +46,7 @@ internal sealed class BrokerProcessHardening : IDisposable
             Path.GetDirectoryName(Path.GetFullPath(processPath))
                 ?? throw new InvalidOperationException("Broker executable directory is unavailable."));
         _trustedReadOnlyRoots = BuildTrustedReadOnlyRoots();
+        _signedModuleRoots = BuildSignedModuleRoots();
 
         _notificationEvent = BrokerHardeningNative.CreateEvent(
             IntPtr.Zero,
@@ -62,20 +65,27 @@ internal sealed class BrokerProcessHardening : IDisposable
         };
     }
 
-    public static bool TryCreate(out BrokerProcessHardening? hardening)
+    /// <param name="failure">Why hardening failed (a stage, or "module-" plus the file name of
+    /// the first untrusted module) so the audit log can name the cause.</param>
+    public static bool TryCreate(out BrokerProcessHardening? hardening, out string failure)
     {
         hardening = null;
+        failure = string.Empty;
         BrokerProcessHardening? created = null;
         try
         {
             if (!ApplyEarlyMitigations())
             {
+                failure = $"mitigations-{Marshal.GetLastPInvokeError():X}";
                 return false;
             }
 
             created = new BrokerProcessHardening();
             if (!created.Start())
             {
+                failure = created._lastUntrustedModule is string module
+                    ? "module-" + module
+                    : "monitor-start";
                 created.Dispose();
                 return false;
             }
@@ -83,8 +93,9 @@ internal sealed class BrokerProcessHardening : IDisposable
             hardening = created;
             return true;
         }
-        catch
+        catch (Exception exception)
         {
+            failure = $"exception-{exception.HResult:X8}";
             created?.Dispose();
             hardening = null;
             return false;
@@ -279,6 +290,7 @@ internal sealed class BrokerProcessHardening : IDisposable
 
                 if (!allowNewTrustedModules || !IsTrustedModulePath(modulePath))
                 {
+                    _lastUntrustedModule = Path.GetFileName(modulePath);
                     return false;
                 }
 
@@ -412,7 +424,32 @@ internal sealed class BrokerProcessHardening : IDisposable
 
     private bool IsTrustedModulePath(string modulePath)
     {
-        return IsTrustedModulePath(modulePath, _brokerDirectory, _trustedReadOnlyRoots);
+        // A development build runs from a writable folder, where the Windows App SDK's own
+        // native modules (WinUIEdit.dll, DWriteCore.dll, ...) are only trusted with a
+        // Microsoft signature. Without this, revealing a password failed right after Hello.
+        if (IsTrustedModulePath(modulePath, _brokerDirectory, _trustedReadOnlyRoots))
+        {
+            return true;
+        }
+
+        if (modulePath.StartsWith(_brokerDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            return BrokerModuleSignature.IsMicrosoftSigned(modulePath);
+        }
+
+        // Security software, input methods and drivers' user-mode parts load into every GUI
+        // process from Program Files, which only administrators can write. They are trusted
+        // there only with a valid Authenticode signature.
+        return _signedModuleRoots.Any(root => modulePath.StartsWith(root, StringComparison.OrdinalIgnoreCase)) &&
+               BrokerModuleSignature.IsValidlySigned(modulePath);
+    }
+
+    private static string[] BuildSignedModuleRoots()
+    {
+        List<string> roots = [];
+        AddRoot(roots, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
+        AddRoot(roots, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
+        return roots.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     internal static bool IsTrustedModulePath(

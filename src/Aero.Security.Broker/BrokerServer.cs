@@ -461,9 +461,11 @@ internal sealed class BrokerServer : IDisposable
                 if (_hardening is null)
                 {
                     if (!BrokerProcessHardening.TryCreate(
-                            out BrokerProcessHardening? createdHardening) ||
+                            out BrokerProcessHardening? createdHardening,
+                            out string hardeningFailure) ||
                         createdHardening is null)
                     {
+                        _audit.Write("hardening", hardeningFailure, _clientProcessId, Guid.Empty);
                         throw new InvalidOperationException(
                             "Aero Security Broker could not activate process hardening.");
                     }

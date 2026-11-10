@@ -88,9 +88,11 @@
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TitleBarRow" Height="40" />
             <RowDefinition x:Name="ToolbarRow" Height="48" />
+            <RowDefinition x:Name="DockedTabRow" Height="0" />
             <RowDefinition x:Name="BookmarksBarRow" Height="0" />
             <RowDefinition x:Name="ProgressRow" Height="2" />
             <RowDefinition Height="*" />
+            <RowDefinition x:Name="BottomTabRow" Height="0" />
         </Grid.RowDefinitions>
 
         <!-- Custom title bar. Native caption buttons remain on the right. -->
@@ -276,6 +278,20 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+
+                <!-- Capsules behind the navigation and action button groups; shown by interface styles. -->
+                <Border
+                    x:Name="NavGroupSurface"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="4"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed" />
+                <Border
+                    x:Name="ActionGroupSurface"
+                    Grid.Column="7"
+                    Grid.ColumnSpan="4"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed" />
 
                 <Button
                     x:Name="BackButton"
@@ -1081,7 +1097,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Width="32" Height="32" Background="{ThemeResource AeroAddressBrush}" CornerRadius="16">
+                                            <Border x:Name="ProfileMenuIconHost" Width="32" Height="32" Background="{ThemeResource AeroAddressBrush}" CornerRadius="16">
                                                 <TextBlock x:Name="ProfileMenuIconText" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17" Text="●" />
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="0">
@@ -1445,9 +1461,26 @@
             </Grid>
         </Border>
 
+        <!-- Hosts the tab strip when it sits below the toolbar, at the bottom or on a side. -->
+        <Border
+            x:Name="HorizontalTabDock"
+            Grid.Row="2"
+            Background="{ThemeResource AeroTitleBarBrush}"
+            BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+            Visibility="Collapsed" />
+
+        <Border
+            x:Name="VerticalTabDock"
+            Grid.Row="5"
+            Padding="6,6,6,6"
+            HorizontalAlignment="Left"
+            Background="{ThemeResource AeroTitleBarBrush}"
+            BorderBrush="{ThemeResource AeroSoftBorderBrush}"
+            Visibility="Collapsed" />
+
         <Border
             x:Name="BookmarksBar"
-            Grid.Row="2"
+            Grid.Row="3"
             Padding="7,2"
             Background="{ThemeResource AeroToolbarBrush}"
             BorderBrush="{ThemeResource AeroSoftBorderBrush}"
@@ -1487,7 +1520,7 @@
 
         <ProgressBar
             x:Name="PageProgress"
-            Grid.Row="3"
+            Grid.Row="4"
             Height="2"
             IsIndeterminate="True"
             Visibility="Collapsed"
@@ -1495,7 +1528,7 @@
 
         <Grid
             x:Name="BrowserHost"
-            Grid.Row="4"
+            Grid.Row="5"
             AllowDrop="True"
             DragEnter="BrowserHostFileDrop_DragEnter"
             DragLeave="BrowserHostFileDrop_DragLeave"
@@ -1587,7 +1620,7 @@
         <!-- Lightweight find-on-page bar. -->
         <Border
             x:Name="FindBar"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="35"
             Width="360"
             Height="46"
@@ -1671,7 +1704,7 @@
         <!-- History and bookmarks library. -->
         <Border
             x:Name="LibraryPane"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="40"
             Width="360"
             HorizontalAlignment="Right"
@@ -1760,7 +1793,7 @@
         <!-- Downloads manager. -->
         <Border
             x:Name="DownloadsPane"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="44"
             Width="390"
             HorizontalAlignment="Right"
@@ -1822,7 +1855,7 @@
         <!-- Saved tab sets and workspace foundation. -->
         <Border
             x:Name="WorkspacesPane"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="45"
             Width="410"
             HorizontalAlignment="Right"
@@ -1899,7 +1932,7 @@
         <!-- Password and autofill center. -->
         <Border
             x:Name="PasswordsPane"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="45"
             Width="390"
             HorizontalAlignment="Right"
@@ -1972,7 +2005,7 @@
         <!-- Chromium extensions lab. -->
         <Border
             x:Name="ExtensionsPane"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="45"
             Width="420"
             HorizontalAlignment="Right"
@@ -2073,7 +2106,7 @@
         <!-- Page zoom indicator. -->
         <Border
             x:Name="ZoomToast"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="59"
             MinWidth="210"
             Height="48"
@@ -2113,7 +2146,7 @@
         <!-- Download started/completed toast. -->
         <Border
             x:Name="DownloadToast"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="58"
             Width="330"
             MinHeight="66"
@@ -2148,7 +2181,7 @@
         <!-- Crash recovery banner for the active tab. -->
         <Border
             x:Name="RecoveryBar"
-            Grid.Row="4"
+            Grid.Row="5"
             Canvas.ZIndex="46"
             Height="48"
             Margin="10,10,10,0"
@@ -2178,7 +2211,7 @@
         <!-- Command palette. -->
         <Border
             x:Name="CommandPaletteScrim"
-            Grid.RowSpan="5"
+            Grid.RowSpan="7"
             Canvas.ZIndex="70"
             Background="{ThemeResource AeroScrimBrush}"
             Opacity="0"
@@ -2187,7 +2220,7 @@
 
         <Border
             x:Name="CommandPalette"
-            Grid.RowSpan="5"
+            Grid.RowSpan="7"
             Canvas.ZIndex="71"
             Width="620"
             MaxHeight="520"
@@ -2239,7 +2272,7 @@
         <!-- Settings pane. It is intentionally simple and fast. -->
         <Border
             x:Name="SettingsScrim"
-            Grid.RowSpan="5"
+            Grid.RowSpan="7"
             Canvas.ZIndex="50"
             Background="{ThemeResource AeroScrimBrush}"
             Opacity="0"
@@ -2248,7 +2281,7 @@
 
         <Border
             x:Name="SettingsPane"
-            Grid.RowSpan="5"
+            Grid.RowSpan="7"
             Canvas.ZIndex="51"
             Width="330"
             HorizontalAlignment="Right"
@@ -2543,7 +2576,7 @@
         <!-- Full-window visual layer keeps a dragged tab above the page and shows Split View drop zones. -->
         <Canvas
             x:Name="TabDragOverlay"
-            Grid.RowSpan="5"
+            Grid.RowSpan="7"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             Canvas.ZIndex="1000"

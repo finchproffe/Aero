@@ -92,30 +92,32 @@ public sealed partial class MainWindow
         return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
     }
 
-    private int ConfiguredToolbarHeight =>
-        _settings.InterfaceDensity == InterfaceDensity.Compact ? 42 : 48;
+    // The interface style sets the toolbar row height.
+    private int ConfiguredToolbarHeight => (int)Math.Round(
+        CurrentStyleGeometry.ToolbarHeight - (_settings.InterfaceDensity == InterfaceDensity.Compact ? 6 : 0));
 
-    private void ApplyChromeDensity()
-    {
-        bool compact = _settings.InterfaceDensity == InterfaceDensity.Compact;
-        NavigationToolbarSurface.Padding = new Thickness(8, compact ? 3 : 5, 8, compact ? 3 : 5);
-        AddressSurface.Height = compact ? 34 : 36;
-        AddressBox.Height = compact ? 30 : 32;
-    }
+    private void ApplyChromeDensity() => ApplyChromeGeometry();
 
     private void UpdateAddressSurface(bool isPointerOver = false)
     {
         if (AddressSurface is null || AddressBox is null) return;
         bool focused = AddressBox.FocusState != FocusState.Unfocused;
+        StyleGeometry style = CurrentStyleGeometry;
         AddressSurface.Background = GetChromeBrush(focused
             ? "AeroAddressFocusedBrush"
             : isPointerOver ? "AeroSurfaceBrush" : "AeroAddressBrush");
+        // Fluent marks focus with a thicker accent underline instead of a full outline.
+        AddressSurface.BorderThickness = focused && style.AddressUnderline
+            ? new Thickness(1, 1, 1, 2)
+            : new Thickness(1);
         // High Contrast fills are identical, so the field needs its system-coloured edge there.
         AddressSurface.BorderBrush = focused
             ? GetChromeBrush("AeroTabIndicatorBrush")
             : _chromeAccessibilitySettings.HighContrast
                 ? GetChromeBrush("AeroBorderBrush")
-                : isPointerOver ? GetChromeBrush("AeroSoftBorderBrush") : AddressSurface.Background;
+                : isPointerOver || style.AddressOutline
+                    ? GetChromeBrush("AeroSoftBorderBrush")
+                    : AddressSurface.Background;
         AddressSurfaceTransform.ScaleX = 1;
         AddressSurfaceTransform.ScaleY = 1;
     }

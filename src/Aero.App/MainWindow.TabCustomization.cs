@@ -103,6 +103,21 @@ public sealed partial class MainWindow
 
     private CornerRadius GetConfiguredTabCornerRadius(bool isActive, double height)
     {
+        double connectedRadius = Math.Clamp(_settings.TabCornerRadius, 0, 12);
+        if (_settings.TabShape == TabShapeStyle.Connected && isActive)
+        {
+            // Connected tabs open towards the page: down from the top, up from the bottom.
+            if (_settings.TabPosition == TabStripPosition.Bottom)
+            {
+                return new CornerRadius(0, 0, connectedRadius, connectedRadius);
+            }
+
+            if (IsVerticalTabStrip)
+            {
+                return new CornerRadius(connectedRadius);
+            }
+        }
+
         return _settings.TabShape switch
         {
             TabShapeStyle.Pill => new CornerRadius(Math.Max(1, height / 2)),
@@ -187,10 +202,14 @@ public sealed partial class MainWindow
         state.Header.Padding = isPinned
             ? new Thickness(0)
             : new Thickness(horizontalPadding, 0, Math.Max(3, horizontalPadding - 4), 0);
-        bool connected = _settings.TabShape == TabShapeStyle.Connected;
+        bool connected = _settings.TabShape == TabShapeStyle.Connected && !IsVerticalTabStrip;
         state.Header.Margin = new Thickness(0);
-        // Connected tabs sit on the toolbar edge; free-standing shapes stay centred in the bar.
-        state.Header.VerticalAlignment = connected ? VerticalAlignment.Bottom : VerticalAlignment.Center;
+        // Connected tabs sit on the edge facing the page; free-standing shapes stay centred in the bar.
+        state.Header.VerticalAlignment = !connected
+            ? VerticalAlignment.Center
+            : _settings.TabPosition == TabStripPosition.Bottom
+                ? VerticalAlignment.Top
+                : VerticalAlignment.Bottom;
         state.Header.CornerRadius = GetConfiguredTabCornerRadius(isActive, state.Header.Height);
         ApplyTabIndicatorLayout(state, isActive);
     }
@@ -231,8 +250,10 @@ public sealed partial class MainWindow
         state.Header.BorderBrush = new SolidColorBrush(border);
         state.Header.BorderThickness = effectiveOpacity <= 0
             ? new Thickness(0)
-            : _settings.TabShape == TabShapeStyle.Connected && isActive
-                ? new Thickness(thickness, thickness, thickness, 0)
+            : _settings.TabShape == TabShapeStyle.Connected && isActive && !IsVerticalTabStrip
+                ? _settings.TabPosition == TabStripPosition.Bottom
+                    ? new Thickness(thickness, 0, thickness, thickness)
+                    : new Thickness(thickness, thickness, thickness, 0)
                 : new Thickness(thickness);
     }
 

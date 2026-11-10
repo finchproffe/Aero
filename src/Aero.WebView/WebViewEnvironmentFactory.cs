@@ -27,9 +27,10 @@ public static class WebViewEnvironmentFactory
         Directory.CreateDirectory(userDataFolder);
         CoreWebView2EnvironmentOptions options = new()
         {
-            AreBrowserExtensionsEnabled = enableBrowserExtensions,
-            // Pages may not start sound until the user interacts with them; muted autoplay still works.
-            AdditionalBrowserArguments = "--autoplay-policy=document-user-activation-required"
+            // No --autoplay-policy override: Chromium's default already blocks sound on sites the
+            // user never engaged with, while the stricter document-activation policy left YouTube's
+            // player stuck on its thumbnail when a video was opened from the address bar or a new tab.
+            AreBrowserExtensionsEnabled = enableBrowserExtensions
         };
 
         CoreWebView2Environment environment = await

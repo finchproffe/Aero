@@ -44,6 +44,9 @@ public sealed partial class MainWindow
         nameof(BrowserSettings.ThemeMode),
         nameof(BrowserSettings.AccentColor),
         nameof(BrowserSettings.InterfaceDensity),
+        nameof(BrowserSettings.InterfaceStyle),
+        nameof(BrowserSettings.TabPosition),
+        nameof(BrowserSettings.VerticalTabWidth),
         nameof(BrowserSettings.ReduceMotion),
         nameof(BrowserSettings.TabSize),
         nameof(BrowserSettings.TabBarHeight),
@@ -181,6 +184,7 @@ public sealed partial class MainWindow
             return;
         }
 
+        ApplyPageBackdrop(state, aeroPage: true);
         state.Browser.NavigateToString(BuildSettingsPageHtml());
         UpdateActiveChrome();
         SaveSessionSnapshot();
@@ -273,7 +277,16 @@ public sealed partial class MainWindow
         {
             settings = _settings,
             profile = _browserProfile,
-            profiles,
+            profileAvatar = GetProfileAvatarDataUrl(_browserProfile),
+            profiles = profiles.Select(profile => new
+            {
+                profile.Id,
+                profile.Name,
+                profile.Icon,
+                profile.IsDefault,
+                profile.IsGuest,
+                Avatar = GetProfileAvatarDataUrl(profile)
+            }),
             profileIcons = BrowserProfileManager.AvailableIcons,
             permissions,
             extensions = _installedExtensions
@@ -327,7 +340,7 @@ public sealed partial class MainWindow
         }
 
         // Inserted after translation so text replacement never scans the font payload.
-        return html.Replace(AeroFontFaceToken, GetAeroFontFaceCss(), StringComparison.Ordinal);
+        return InjectStylePageCss(html.Replace(AeroFontFaceToken, GetAeroFontFaceCss(), StringComparison.Ordinal), "settings");
     }
 
     private bool TryHandleSettingsMessage(BrowserTabState state, JsonElement root, string messageType)
@@ -354,7 +367,17 @@ public sealed partial class MainWindow
             switch (type)
             {
                 case "aero-settings-set":
+                    InterfaceStyle previousStyle = _settings.InterfaceStyle;
                     string changedSetting = ApplySettingMessage(message);
+                    if (changedSetting == nameof(BrowserSettings.InterfaceStyle))
+                    {
+                        // A style is a full bundle: tabs, layout and chrome switch together.
+                        ApplyInterfaceStyleBundle(previousStyle);
+                        ApplyAllRuntimeSettings(nameof(BrowserSettings.InterfaceStyle));
+                        await RefreshSettingsPageAsync(state, "Interface style applied. Every value remains editable.", "appearance");
+                        break;
+                    }
+
                     await PostSettingsStatusAsync(
                         state,
                         string.IsNullOrWhiteSpace(changedSetting)
@@ -381,6 +404,7 @@ public sealed partial class MainWindow
                     break;
                 case "aero-settings-profile":
                     await HandleProfileSettingsActionAsync(
+                        state,
                         ReadString(message, "action"),
                         ReadString(message, "id"),
                         ReadString(message, "name"),
@@ -456,6 +480,7 @@ public sealed partial class MainWindow
         if (changedSetting is nameof(BrowserSettings.NewTabMode) or
             nameof(BrowserSettings.ShowQuickLinks) or
             nameof(BrowserSettings.ThemeMode) or
+            nameof(BrowserSettings.InterfaceStyle) or
             nameof(BrowserSettings.ReduceMotion) or
             nameof(BrowserSettings.SearchEngine) or
             nameof(BrowserSettings.CustomSearchUrl) or
@@ -515,6 +540,9 @@ public sealed partial class MainWindow
                 break;
             case "view-passwords":
                 await ShowSavedSignInsAsync();
+                break;
+            case "export-cookies":
+                await ExportCookiesAsync(state, ReadString(message, "format"));
                 break;
             case "clear-data":
                 await ClearSelectedBrowsingDataAsync(state, message);
@@ -667,8 +695,19 @@ public sealed partial class MainWindow
 
     private async Task ApplyTabStylePresetAsync(BrowserTabState state, string preset)
     {
-        // Presets only touch tab-strip appearance. The user can keep editing every
-        // value afterwards, so they are starting points rather than locked themes.
+        ApplyTabPresetValues(preset);
+        _settings.Save();
+        ApplyAllRuntimeSettings(nameof(BrowserSettings.TabShape));
+        await RefreshSettingsPageAsync(
+            state,
+            "Tab style applied. Every value remains editable.",
+            "appearance");
+    }
+
+    // Presets only touch tab-strip appearance. The user can keep editing every
+    // value afterwards, so they are starting points rather than locked themes.
+    private void ApplyTabPresetValues(string preset)
+    {
         switch (preset.ToLowerInvariant())
         {
             case "glass":
@@ -784,13 +823,6 @@ public sealed partial class MainWindow
                 _settings.TabTextAlignment = TabTextAlignmentMode.Left;
                 break;
         }
-
-        _settings.Save();
-        ApplyAllRuntimeSettings(nameof(BrowserSettings.TabShape));
-        await RefreshSettingsPageAsync(
-            state,
-            "Tab style applied. Every value remains editable.",
-            "appearance");
     }
 
     private async Task ClearSelectedBrowsingDataAsync(BrowserTabState state, JsonElement message)
@@ -912,6 +944,7 @@ public sealed partial class MainWindow
     }
 
     private async Task HandleProfileSettingsActionAsync(
+        BrowserTabState state,
         string action,
         string profileId,
         string name,
@@ -919,6 +952,10 @@ public sealed partial class MainWindow
     {
         switch (action)
         {
+            case "avatar-upload":
+            case "avatar-clear":
+                await SetProfileAvatarAsync(state, profileId, remove: action == "avatar-clear");
+                break;
             case "create":
             {
                 BrowserProfile created = BrowserProfileManager.Create(name, icon);
@@ -1022,6 +1059,7 @@ public sealed partial class MainWindow
         if (_tabs.Contains(state) &&
             string.Equals(state.InternalPageAddress, SettingsAddress, StringComparison.OrdinalIgnoreCase))
         {
+            ApplyPageBackdrop(state, aeroPage: true);
             state.Browser.NavigateToString(BuildSettingsPageHtml());
             if (!string.IsNullOrWhiteSpace(section))
             {
@@ -1133,10 +1171,6 @@ public sealed partial class MainWindow
     private void ApplyTabBarAppearance()
     {
         int height = Math.Clamp(_settings.TabBarHeight, 36, 60);
-        if (!_isFullscreen)
-        {
-            TitleBarRow.Height = new GridLength(height);
-        }
 
         double buttonSize = Math.Clamp(height - 10, 26, 40);
         double verticalMargin = Math.Max(2, (height - buttonSize) / 2);
@@ -1155,11 +1189,13 @@ public sealed partial class MainWindow
             0,
             0,
             0);
-        TitleBarSurface.Background = _settings.TabBarBlur == TabBarBlurStyle.Off
-            ? new SolidColorBrush(IsDarkTheme()
-                ? Color.FromArgb(255, 23, 28, 32)
-                : Color.FromArgb(255, 221, 226, 229))
-            : GetTransparentBrush();
+        TitleBarSurface.Background = _settings.TabBarBlur != TabBarBlurStyle.Off
+            ? GetTransparentBrush()
+            : _settings.InterfaceStyle == InterfaceStyle.Aero
+                ? new SolidColorBrush(IsDarkTheme()
+                    ? Color.FromArgb(255, 23, 28, 32)
+                    : Color.FromArgb(255, 221, 226, 229))
+                : GetChromeBrush("AeroTitleBarBrush");
 
         foreach (BrowserTabState tab in _tabs)
         {
@@ -1209,6 +1245,7 @@ public sealed partial class MainWindow
         MountainFrontPath.Fill = new SolidColorBrush(
             BlendColors(baseColor, accentColor, 0.72));
 
+        ApplyTabStripPosition();
         UpdateAllTabVisuals();
         UpdateTitleBarColors();
     }
@@ -1723,7 +1760,7 @@ public sealed partial class MainWindow
 aside{position:sticky;top:0;height:100vh;height:100dvh;padding:20px 12px;display:flex;flex-direction:column;background:var(--side);border-right:1px solid var(--line);overflow:auto}.brand{padding:0 8px 14px;font-size:18px;font-weight:600}.version{margin-top:auto;padding:16px 10px 0;color:var(--muted);font-size:12px}.settings-search{display:block;margin:0 0 12px}.settings-search span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.settings-search input{width:100%}
 nav{display:grid;gap:2px}nav button{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:36px;padding:7px 10px;border:0;border-radius:4px;background:transparent;color:var(--text);text-align:left}nav button .nav-icon{color:var(--muted)}.nav-icon{width:18px;display:inline-flex;flex-shrink:0;text-align:center;font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";font-size:16px;line-height:1}nav button:hover{background:var(--raised);color:var(--text)}nav button.active{background:var(--raised);color:var(--text)}nav button.active .nav-icon{color:var(--text)}nav button.active:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--accent)}
 main{width:min(860px,100%);padding:28px clamp(20px,4vw,48px) 80px;min-width:0}section{display:none}section.active{display:block}h1{font-size:20px;line-height:1.3;font-weight:600;margin:0 0 4px}h2{font-size:14px;line-height:1.4;margin:0;font-weight:600}.lead{margin:0 0 16px;color:var(--muted);font-size:13px;max-width:65ch}.card{margin:0 0 28px;padding:0;border:0;border-bottom:1px solid var(--line);background:none;min-width:0}.card:last-child{border-bottom:0}.card-head{margin:12px 0}.hint,.meta{color:var(--muted);font-size:12px;overflow-wrap:anywhere}.hint{margin:12px 0}.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,320px);gap:24px;align-items:center;min-height:56px;padding:10px 0;border-top:1px solid var(--line)}.row:first-child{border-top:0}.row>*{min-width:0}.label b{display:block;font-weight:400}.label span{display:block;margin-top:2px;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
-input,select,textarea,button.action{max-width:100%;min-width:0;width:100%;min-height:32px;border:1px solid var(--control-line);border-radius:4px;background:var(--raised);color:var(--text);padding:5px 10px}input:focus,select:focus,textarea:focus{border-bottom-color:var(--accent);box-shadow:inset 0 -1px 0 var(--accent)}input:focus-visible,select:focus-visible,textarea:focus-visible{outline:0}input::placeholder{color:var(--muted)}textarea{min-height:88px;resize:vertical}input[type=color]{height:38px;padding:4px}input[type=checkbox]{width:18px;height:18px;min-height:18px;justify-self:end;accent-color:var(--accent);flex-shrink:0}.row>input[type=checkbox]{appearance:none;position:relative;width:40px;height:20px;min-height:20px;padding:0;border:1px solid var(--muted);border-radius:10px;background:transparent;cursor:pointer;transition:background-color .12s,border-color .12s}.row>input[type=checkbox]:before{content:"";position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:var(--muted);transition:transform .12s}.row>input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}.row>input[type=checkbox]:checked:before{background:var(--on-accent);transform:translateX(20px)}.row>input[type=checkbox]:focus{box-shadow:none}.row>input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button.action{width:auto;font-weight:500;transition:background-color .12s,color .12s}button.primary{border-color:transparent;background:var(--accent);color:var(--on-accent)}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:4px 0}.stack{display:grid;gap:8px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chip{padding:2px 8px;border-radius:4px;background:var(--raised);color:var(--muted);font-size:12px}.list-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.list-item:first-child{border-top:0}.list-item b{overflow-wrap:anywhere;font-weight:600}.list-item .actions{max-width:300px}.avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:4px;background:var(--raised);font-size:18px}.danger,button.danger{color:var(--danger)}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 0}.check-grid label{display:flex;gap:10px;align-items:center;min-height:28px}.check-grid input{justify-self:auto}.toast{position:fixed;right:24px;bottom:24px;max-width:min(460px,calc(100vw - 32px));padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:var(--raised);box-shadow:0 8px 24px #0003;opacity:0;transform:translateY(8px);transition:opacity .16s,transform .16s;pointer-events:none;z-index:20;overflow-wrap:anywhere}.toast.show{opacity:1;transform:none}.toast.error{border-color:var(--danger)}[hidden]{display:none!important}.search-empty{color:var(--muted);padding:20px 0}html.reduce-motion *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+input,select,textarea,button.action{max-width:100%;min-width:0;width:100%;min-height:32px;border:1px solid var(--control-line);border-radius:4px;background:var(--raised);color:var(--text);padding:5px 10px}input:focus,select:focus,textarea:focus{border-bottom-color:var(--accent);box-shadow:inset 0 -1px 0 var(--accent)}input:focus-visible,select:focus-visible,textarea:focus-visible{outline:0}input::placeholder{color:var(--muted)}textarea{min-height:88px;resize:vertical}input[type=color]{height:38px;padding:4px}input[type=checkbox]{width:18px;height:18px;min-height:18px;justify-self:end;accent-color:var(--accent);flex-shrink:0}.row>input[type=checkbox]{appearance:none;position:relative;width:40px;height:20px;min-height:20px;padding:0;border:1px solid var(--muted);border-radius:10px;background:transparent;cursor:pointer;transition:background-color .12s,border-color .12s}.row>input[type=checkbox]:before{content:"";position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:var(--muted);transition:transform .12s}.row>input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}.row>input[type=checkbox]:checked:before{background:var(--on-accent);transform:translateX(20px)}.row>input[type=checkbox]:focus{box-shadow:none}.row>input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button.action{width:auto;font-weight:500;transition:background-color .12s,color .12s}button.primary{border-color:transparent;background:var(--accent);color:var(--on-accent)}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:4px 0}.stack{display:grid;gap:8px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chip{padding:2px 8px;border-radius:4px;background:var(--raised);color:var(--muted);font-size:12px}.list-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.list-item:first-child{border-top:0}.list-item b{overflow-wrap:anywhere;font-weight:600}.list-item .actions{max-width:300px}.avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:4px;background:var(--raised);font-size:18px}.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.profile-photo{flex:0 0 auto;border-radius:50%}.danger,button.danger{color:var(--danger)}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 0}.check-grid label{display:flex;gap:10px;align-items:center;min-height:28px}.check-grid input{justify-self:auto}.toast{position:fixed;right:24px;bottom:24px;max-width:min(460px,calc(100vw - 32px));padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:var(--raised);box-shadow:0 8px 24px #0003;opacity:0;transform:translateY(8px);transition:opacity .16s,transform .16s;pointer-events:none;z-index:20;overflow-wrap:anywhere}.toast.show{opacity:1;transform:none}.toast.error{border-color:var(--danger)}[hidden]{display:none!important}.search-empty{color:var(--muted);padding:20px 0}html.reduce-motion *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 html[data-theme=Light]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#fff;--raised:#fff;--line:#e3e7ed;--control-line:#c4cbd6;--text:#20242c;--muted:#566274;--accent:#1b57b1;--on-accent:#fff;--danger:#b42330}
 @media(prefers-color-scheme:light){html[data-theme=System]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#fff;--raised:#fff;--line:#e3e7ed;--control-line:#c4cbd6;--text:#20242c;--muted:#566274;--accent:#1b57b1;--on-accent:#fff;--danger:#b42330}}
 @media(max-width:1050px){.row{grid-template-columns:minmax(0,1fr) minmax(160px,280px);gap:16px}.list-item{grid-template-columns:38px minmax(0,1fr)}.list-item .actions{grid-column:2;justify-content:flex-start;max-width:none}}
@@ -1752,6 +1789,9 @@ html[data-theme=Light]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#ff
 <section id="appearance"><h1>Внешний вид</h1><p class="lead">Тема, акцент и плотность интерфейса.</p><div class="card">
 <div class="row"><div class="label"><b>Тема</b></div><select data-setting="ThemeMode"><option value="Light">Светлая</option><option value="Dark">Тёмная</option><option value="System">Системная</option></select></div>
 <div class="row"><div class="label"><b>Акцентный цвет</b></div><input type="color" data-setting="AccentColor"></div>
+<div class="row"><div class="label"><b>Стиль интерфейса</b><span>Меняет весь интерфейс: материал окна, форму кнопок и адресной строки, панели, меню, вкладки и анимации. Liquid Glass — стекло и плавающая панель, Material 3 — тональные поверхности и круглые кнопки, Fluent — Mica как в Windows 11, OLED — чистый чёрный и компактность, Sidebar — вертикальные вкладки и страница-карточка. После выбора всё можно донастроить.</span></div><select data-setting="InterfaceStyle"><option value="Aero">Aero</option><option value="LiquidGlass">Liquid Glass</option><option value="Material3">Material 3 Expressive</option><option value="Fluent">Fluent (Mica)</option><option value="Oled">OLED Black</option><option value="Sidebar">Sidebar</option></select></div>
+<div class="row"><div class="label"><b>Положение вкладок</b><span>Сверху, под адресной строкой, снизу или вертикально сбоку.</span></div><select data-setting="TabPosition"><option value="Top">Сверху</option><option value="BelowToolbar">Под адресной строкой</option><option value="Bottom">Снизу окна</option><option value="Left">Слева (вертикально)</option><option value="Right">Справа (вертикально)</option></select></div>
+<div class="row"><div class="label"><b>Ширина боковых вкладок</b><span>160–420 px, для вертикальных вкладок.</span></div><input type="number" min="160" max="420" step="10" data-setting="VerticalTabWidth"></div>
 <div class="row"><div class="label"><b>Плотность интерфейса</b></div><select data-setting="InterfaceDensity"><option value="Comfortable">Обычная</option><option value="Compact">Компактная</option></select></div>
 <div class="row"><div class="label"><b>Уменьшить анимации</b><span>Отключает масштабирование и перемещение элементов.</span></div><input type="checkbox" data-setting="ReduceMotion"></div>
 <div class="row"><div class="label"><b>Ширина вкладок</b></div><select data-setting="TabSize"><option value="Compact">Компактная</option><option value="Medium">Средняя</option><option value="Large">Широкая</option></select></div>
@@ -1857,16 +1897,17 @@ html[data-theme=Light]{color-scheme:light;--bg:#f7f8fa;--side:#f7f8fa;--card:#ff
 <div class="card"><div class="card-head"><h2>Импорт из браузеров</h2><p class="hint">Aero читает профили Chrome, Edge, Яндекс Браузера, Brave, Vivaldi и Opera; из Firefox — закладки и историю. Для паролей поддерживаются CSV-файлы Chrome, Edge, Firefox, Brave, Opera, Vivaldi, Safari, 1Password, Bitwarden и других популярных браузеров.</p></div><div class="check-grid" id="importItems"></div><div class="actions"><button class="action" id="importChrome">Импорт из Chrome</button><button class="action" id="importEdge">Импорт из Edge</button><button class="action" id="importYandex">Яндекс Браузер</button><button class="action" id="importBrave">Brave</button><button class="action" id="importVivaldi">Vivaldi</button><button class="action" id="importOpera">Opera</button><button class="action" id="importFirefox">Firefox</button></div><div class="row"><div class="label"><b>Пароли</b><span>Сайты, логины и скрытые поля паролей открываются только после Windows Hello.</span></div><div class="actions"><button class="action primary" id="viewPasswords">Открыть пароли</button><button class="action" id="importPasswords">Импортировать CSV</button><button class="action" id="exportPasswords">Экспортировать пароли</button></div></div><div class="row"><div class="label"><b>Cookies</b><span>Импорт Netscape cookies.txt, JSON или CSV в текущий профиль. Файл может содержать активные сеансы входа; Aero потребует Windows Hello.</span></div><div class="actions"><button class="action" id="importCookies">Импортировать cookies</button></div></div></div>
 <div class="card"><div class="card-head"><h2>Синхронизация</h2><p class="hint">Бесплатно через вашу облачную папку: OneDrive, Яндекс Диск, Google Drive, Dropbox или Syncthing. Всё в ней зашифровано фразой, которую знаете только вы. Закладки синхронизируются сами, пароли — кнопкой с подтверждением Windows Hello. Та же папка и фраза вернут пароли на новом компьютере.</p></div><p class="hint" id="syncStatus"></p><div class="actions"><button class="action primary" id="syncSetup">Выбрать папку</button><button class="action" id="syncPasswords">Синхронизировать пароли</button><button class="action danger" id="syncDisable">Отключить</button></div></div>
 <div class="card"><div class="card-head"><h2>Экспорт данных</h2><p class="hint">Создаёт читаемый файл .aerodata без cookies и паролей.</p></div><div class="check-grid" id="exportItems"></div><div class="actions"><button class="action primary" id="exportData">Экспортировать выбранное</button></div></div>
+<div class="card"><div class="card-head"><h2>Экспорт cookies</h2><p class="hint">Все cookies профиля: cookies.txt для yt-dlp, curl и расширений или JSON для Cookie-Editor. Файл даёт вход в ваши аккаунты, поэтому Aero сначала попросит подтвердить Windows Hello. Храните его только у себя.</p></div><div class="actions" style="justify-content:flex-start"><button class="action" data-cookie-export="netscape">Экспорт cookies.txt</button><button class="action" data-cookie-export="json">Экспорт JSON</button></div></div>
 <div class="card"><div class="card-head"><h2>Резервные копии профиля</h2><p class="hint">В копию входят настройки, история, закладки, вкладки, workspaces, разрешения, Shield и расширения. Aero Vault, cookies, Local Storage, IndexedDB, Service Worker и данные сеансов намеренно не копируются. Каждый файл проверяется SHA-256.</p></div>
 <div class="row"><div class="label"><b>Автоматическая локальная копия</b><span>Шифруется для текущего пользователя Windows.</span></div><input type="checkbox" data-setting="AutomaticBackupsEnabled"></div>
 <div class="row"><div class="label"><b>Интервал, часов</b></div><input type="number" min="1" max="168" data-setting="AutomaticBackupIntervalHours"></div>
 <div class="row"><div class="label"><b>Хранить последних копий</b></div><input type="number" min="2" max="20" data-setting="BackupRetentionCount"></div>
 <div class="actions"><button class="action primary" id="backupCreate">Создать копию</button><button class="action" id="backupValidate">Проверить файл</button><button class="action" id="backupRestore">Восстановить из файла</button><button class="action danger" id="backupRecover">Восстановить последнюю исправную</button></div><div id="backupList"></div></div></section>
-<section id="profiles"><h1>Профили</h1><p class="lead">История, cookies, расширения, WebView2 и Aero Vault изолированы.</p><div class="card"><div class="card-head"><h2>Текущий профиль</h2><p class="hint" id="profilePath"></p></div><div class="row"><div class="label"><b>Аватар</b><span>Выберите готовую иконку — ввод короткого кода больше не нужен.</span></div><select id="profileIcon"></select></div><div class="row"><div class="label"><b>Имя профиля</b><span>До 80 символов.</span></div><input id="profileName" maxlength="80"></div><div class="actions"><button class="action" id="profileSave">Сохранить</button><button class="action" data-profile-action="guest">Гостевой профиль</button></div></div><div class="card"><div class="card-head"><h2>Все профили</h2></div><div id="profileList"></div></div><div class="card"><div class="card-head"><h2>Новый профиль</h2></div><div class="row"><select id="newProfileIcon" aria-label="Значок нового профиля"></select><input id="newProfileName" aria-label="Имя нового профиля" placeholder="Имя профиля" maxlength="80"></div><div class="actions"><button class="action primary" id="profileCreate">Создать и открыть</button></div></div></section>
+<section id="profiles"><h1>Профили</h1><p class="lead">История, cookies, расширения, WebView2 и Aero Vault изолированы.</p><div class="card"><div class="card-head"><h2>Текущий профиль</h2><p class="hint" id="profilePath"></p></div><div class="row"><div class="label"><b>Аватар</b><span>Выберите готовую иконку — ввод короткого кода больше не нужен.</span></div><select id="profileIcon"></select></div><div class="row"><div class="label"><b>Фото профиля</b><span>Своя картинка вместо значка: PNG, JPG, WebP, GIF или BMP. Aero обрежет её в квадрат 128×128.</span></div><div class="actions"><span class="avatar profile-photo" id="profilePhoto"></span><button class="action" data-profile-photo="avatar-upload">Загрузить фото</button><button class="action" data-profile-photo="avatar-clear" id="profilePhotoClear">Убрать фото</button></div></div><div class="row"><div class="label"><b>Имя профиля</b><span>До 80 символов.</span></div><input id="profileName" maxlength="80"></div><div class="actions"><button class="action" id="profileSave">Сохранить</button><button class="action" data-profile-action="guest">Гостевой профиль</button></div></div><div class="card"><div class="card-head"><h2>Все профили</h2></div><div id="profileList"></div></div><div class="card"><div class="card-head"><h2>Новый профиль</h2></div><div class="row"><select id="newProfileIcon" aria-label="Значок нового профиля"></select><input id="newProfileName" aria-label="Имя нового профиля" placeholder="Имя профиля" maxlength="80"></div><div class="actions"><button class="action primary" id="profileCreate">Создать и открыть</button></div></div></section>
 </main><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <script>
 const initial=__INITIAL_STATE__;
-document.documentElement.dataset.theme=initial.settings.themeMode;applyAccent(initial.settings.accentColor);document.documentElement.classList.toggle('reduce-motion',!!initial.settings.reduceMotion);
+document.documentElement.dataset.theme=initial.settings.themeMode;document.documentElement.dataset.style=initial.settings.interfaceStyle||'Aero';applyAccent(initial.settings.accentColor);document.documentElement.classList.toggle('reduce-motion',!!initial.settings.reduceMotion);
 const sections=[['general','Основные','\uE713'],['appearance','Внешний вид','\uE790'],['downloads','Загрузки','\uE896'],['privacy','Приватность','\uE72E'],['shield','Shield','\uE83D'],['memory','Memory Saver','\uE950'],['extensions','Расширения','\uE74C'],['permissions','Разрешения сайтов','\uE8D7'],['clear','Очистка данных','\uE74D'],['data','Импорт и копии','\uE8B5'],['profiles','Профили','\uE77B']];
 const post=m=>chrome.webview.postMessage(m);const lower=s=>s[0].toLowerCase()+s.slice(1);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let currentSection='general';
@@ -1903,19 +1944,19 @@ const navPaths={
  profiles:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'
 };
 const navIcon=id=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${navPaths[id]}</svg>`;
-document.getElementById('nav').innerHTML=sections.map(([id,n,icon])=>`<button data-page="${id}"><span class="nav-icon" aria-hidden="true">${navIcon(id)}</span><span>${n}</span></button>`).join('');document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.getElementById('settingsSearch').value='';filterSettings('');show(b.dataset.page,true)});show(location.hash.slice(1)&&document.getElementById(location.hash.slice(1))?location.hash.slice(1):(initial.initialSection||'general'));
+const symIcons=['Material3','LiquidGlass'].includes(document.documentElement.dataset.style);document.getElementById('nav').innerHTML=sections.map(([id,n,icon])=>`<button data-page="${id}">${symIcons?`<span class="nav-icon sym" aria-hidden="true">${icon}</span>`:`<span class="nav-icon" aria-hidden="true">${navIcon(id)}</span>`}<span>${n}</span></button>`).join('');document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.getElementById('settingsSearch').value='';filterSettings('');show(b.dataset.page,true)});show(location.hash.slice(1)&&document.getElementById(location.hash.slice(1))?location.hash.slice(1):(initial.initialSection||'general'));
 document.querySelectorAll('[data-setting]').forEach(el=>{const key=lower(el.dataset.setting),v=initial.settings[key];if(el.dataset.list)el.value=(v||[]).join('\n');else if(el.type==='checkbox')el.checked=!!v;else el.value=v??'';el.addEventListener('change',()=>{if(!el.checkValidity()){el.reportValidity();return}let value=el.dataset.list?el.value.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean):el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;if(el.dataset.setting==='ThemeMode')document.documentElement.dataset.theme=value;if(el.dataset.setting==='AccentColor')applyAccent(value);if(el.dataset.setting==='ReduceMotion')document.documentElement.classList.toggle('reduce-motion',!!value);post({type:'aero-settings-set',name:el.dataset.setting,value});toast('Сохранение…')})});
 const memorySize=n=>n<1048576?`${Math.max(0,Math.round(n/1024))} КБ`:`${(n/1048576).toFixed(n<104857600?1:0)} МБ`;const memory=initial.memorySaver;document.getElementById('memoryCurrent').textContent=`Сейчас ${memorySize(memory.currentBytes)}`;document.getElementById('memoryForecast').textContent=`Можно освободить ≈ ${memorySize(memory.estimatedSavingsBytes)}`;const protectedParts=[memory.protectedDownloads?`${memory.protectedDownloads} с загрузкой`:'',memory.protectedAudio?`${memory.protectedAudio} с аудио`:'',memory.protectedForms?`${memory.protectedForms} с формой`:''].filter(Boolean);document.getElementById('memoryStats').textContent=`${memory.eligibleTabs} вкладок доступно для оптимизации · ${memory.sleepingTabs} спят · ${memory.unloadedTabs} выгружено${protectedParts.length?' · Защищено: '+protectedParts.join(', '):''}`;
 const homeBackgroundPath=initial.settings.homeBackgroundImagePath||'';document.getElementById('homeBackgroundPath').textContent=homeBackgroundPath?homeBackgroundPath:'Картинка ещё не выбрана.';
-document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>post({type:'aero-settings-action',action:b.dataset.action}));document.querySelectorAll('[data-tab-preset]').forEach(b=>b.onclick=()=>post({type:'aero-settings-action',action:'tab-style-preset',preset:b.dataset.tabPreset}));
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>post({type:'aero-settings-action',action:b.dataset.action}));document.querySelectorAll('[data-cookie-export]').forEach(b=>b.onclick=()=>post({type:'aero-settings-action',action:'export-cookies',format:b.dataset.cookieExport}));document.querySelectorAll('[data-tab-preset]').forEach(b=>b.onclick=()=>post({type:'aero-settings-action',action:'tab-style-preset',preset:b.dataset.tabPreset}));
 document.getElementById('shieldStats').textContent=`${initial.shield.blockedSession} заблокировано за сеанс · ${initial.shield.networkRules} сетевых и ${initial.shield.cosmeticRules} косметических правил · ${initial.shield.engine}${initial.shield.lastError?' · Ошибка: '+initial.shield.lastError:''}`;
 const ext=document.getElementById('extensionList');ext.innerHTML=initial.extensions.length?initial.extensions.map(x=>`<div class="list-item"><div class="avatar">${esc(x.name.slice(0,1).toUpperCase())}</div><div><b>${esc(x.name)}</b><div class="meta">${x.isEnabled?'Включено':'Отключено'}${x.permissions.length?' · '+esc(x.permissions.slice(0,4).join(', ')):''}</div></div><div class="actions"><button class="action" data-ext="toggle" data-id="${esc(x.id)}">${x.isEnabled?'Отключить':'Включить'}</button><button class="action" data-ext="pin" data-id="${esc(x.id)}">${x.isPinned?'Открепить':'Закрепить'}</button>${x.hasHostAccess?`<button class="action" data-ext="${x.allSitesAccess?'all-sites-off':'all-sites-on'}" data-id="${esc(x.id)}">${x.allSitesAccess?'Ограничить сайты':'Разрешить сайты'}</button>`:''}${x.hasUserScriptsPermission?`<button class="action" data-ext="${x.userScriptsAllowed?'user-scripts-off':'user-scripts-on'}" data-id="${esc(x.id)}">${x.userScriptsAllowed?'Запретить user scripts':'Разрешить user scripts'}</button>`:''}<button class="action" data-ext="open" data-id="${esc(x.id)}">Настройки</button><button class="action danger" data-ext="remove" data-id="${esc(x.id)}">Удалить</button></div></div>`).join(''):'<p class="hint">Расширения пока не установлены.</p>';document.querySelectorAll('[data-ext]').forEach(b=>b.onclick=()=>{if(b.dataset.ext==='remove'&&!confirm('Удалить расширение?'))return;post({type:'aero-settings-extension',action:b.dataset.ext,id:b.dataset.id})});
 const perms=[['CameraPermissionDefault','Камера'],['MicrophonePermissionDefault','Микрофон'],['GeolocationPermissionDefault','Геолокация'],['NotificationsPermissionDefault','Уведомления'],['PopupsPermissionDefault','Всплывающие окна'],['RedirectsPermissionDefault','Перенаправления'],['ClipboardPermissionDefault','Clipboard'],['MidiPermissionDefault','MIDI'],['AutomaticDownloadsPermissionDefault','Автоматические загрузки']];document.getElementById('permissionDefaults').innerHTML=perms.map(([k,n])=>`<div class="row"><div class="label"><b>${n}</b></div><select data-perm="${k}"><option value="Ask">Спрашивать</option><option value="Allow">Разрешить</option><option value="Block">Блокировать</option></select></div>`).join('');document.querySelectorAll('[data-perm]').forEach(el=>{el.value=initial.settings[lower(el.dataset.perm)];el.onchange=()=>post({type:'aero-settings-set',name:el.dataset.perm,value:el.value})});
 document.getElementById('permissionList').innerHTML=initial.permissions.length?initial.permissions.map(p=>`<div class="list-item"><div class="avatar nav-icon" aria-hidden="true">&#xE72E;</div><div><b>${esc(p.origin)}</b><div class="meta">${perms.map(([k,n])=>p[lower(k.replace('PermissionDefault',''))]!=='Ask'?n+': '+p[lower(k.replace('PermissionDefault',''))]:'').filter(Boolean).join(' · ')||'Спрашивать'}</div></div></div>`).join(''):'<p class="hint">Нет сохранённых исключений.</p>';
 const clearNames=[['history','История'],['cookies','Cookies'],['cache','Кэш'],['localStorage','localStorage'],['indexedDb','IndexedDB'],['permissions','Разрешения'],['passwords','Пароли'],['downloads','Загрузки']];document.getElementById('clearItems').innerHTML=clearNames.map(([id,n])=>`<label><input type="checkbox" value="${id}" ${id==='history'||id==='cache'?'checked':''}> ${n}</label>`).join('');document.getElementById('clearButton').onclick=()=>{if(!document.querySelector('#clearItems input:checked')){toast('Выберите данные для удаления.',true);return}if(!confirm('Удалить выбранные данные без возможности восстановления?'))return;post({type:'aero-settings-action',action:'clear-data',range:document.getElementById('clearRange').value,items:[...document.querySelectorAll('#clearItems input:checked')].map(x=>x.value)})};
 const importNames=[['bookmarks','Закладки'],['history','История'],['tabs','Открытые вкладки'],['search','Поисковая система'],['home','Домашняя страница'],['settings','Настройки'],['extensions','Совместимые расширения']];const exportNames=[['bookmarks','Закладки'],['history','История'],['settings','Настройки'],['tabs','Список вкладок'],['workspaces','Workspaces'],['permissions','Разрешения'],['shield','Shield-исключения']];const fillChecks=(id,items)=>document.getElementById(id).innerHTML=items.map(([value,name])=>`<label><input type="checkbox" value="${value}" checked> ${name}</label>`).join('');const checked=id=>[...document.querySelectorAll(`#${id} input:checked`)].map(x=>x.value);fillChecks('importItems',importNames);fillChecks('exportItems',exportNames);const importBrowsers=['Chrome','Edge','Yandex','Brave','Vivaldi','Opera','Firefox'];importBrowsers.forEach(n=>document.getElementById('import'+n).onclick=()=>post({type:'aero-settings-action',action:'import-'+n.toLowerCase(),items:checked('importItems')}));document.getElementById('viewPasswords').onclick=()=>post({type:'aero-settings-action',action:'view-passwords'});document.getElementById('importPasswords').onclick=()=>post({type:'aero-settings-action',action:'import-passwords-csv'});document.getElementById('exportPasswords').onclick=()=>post({type:'aero-settings-action',action:'export-passwords-csv'});document.getElementById('importCookies').onclick=()=>post({type:'aero-settings-action',action:'import-cookies-file'});document.getElementById('exportData').onclick=()=>post({type:'aero-settings-action',action:'export-data',items:checked('exportItems')});document.getElementById('backupCreate').onclick=()=>post({type:'aero-settings-action',action:'backup-create'});document.getElementById('backupValidate').onclick=()=>post({type:'aero-settings-action',action:'backup-validate'});document.getElementById('backupRestore').onclick=()=>post({type:'aero-settings-action',action:'backup-restore'});document.getElementById('backupRecover').onclick=()=>post({type:'aero-settings-action',action:'backup-recover-latest'});const formatSize=n=>n<1048576?`${Math.max(1,Math.round(n/1024))} КБ`:`${(n/1048576).toFixed(1)} МБ`;document.getElementById('backupList').innerHTML=initial.backups.length?'<div class="card-head"><h2>Последние автоматические копии</h2></div>'+initial.backups.map(x=>`<div class="list-item"><div class="avatar">↻</div><div><b>${esc(x.fileName)}</b><div class="meta">${new Date(x.createdAt).toLocaleString()} · ${formatSize(x.size)}</div></div></div>`).join(''):'<p class="hint">Автоматических копий пока нет.</p>';const syncFolder=initial.settings.syncFolder||'';document.getElementById('syncStatus').textContent=syncFolder?'Папка: '+syncFolder:'Синхронизация выключена.';document.getElementById('syncPasswords').disabled=!syncFolder;document.getElementById('syncDisable').disabled=!syncFolder;document.getElementById('syncSetup').onclick=()=>post({type:'aero-settings-action',action:'sync-setup'});document.getElementById('syncPasswords').onclick=()=>post({type:'aero-settings-action',action:'sync-passwords'});document.getElementById('syncDisable').onclick=()=>{if(confirm('Отключить синхронизацию на этом компьютере?'))post({type:'aero-settings-action',action:'sync-disable'})};if(initial.isPrivate){['syncSetup','syncPasswords','syncDisable','importChrome','importEdge','importYandex','importBrave','importVivaldi','importOpera','importFirefox','importPasswords','exportPasswords','importCookies','backupCreate','backupRestore','backupRecover'].forEach(id=>document.getElementById(id).disabled=true)}
-document.getElementById('profilePath').textContent=initial.profile.isGuest?'Временный гостевой каталог':initial.profile.webViewDataFolder;const avatarOptions=initial.profileIcons.map(icon=>`<option value="${esc(icon)}">${esc(icon)}</option>`).join('');document.getElementById('profileIcon').innerHTML=avatarOptions;document.getElementById('newProfileIcon').innerHTML=avatarOptions;document.getElementById('profileIcon').value=initial.profile.icon;document.getElementById('newProfileIcon').value=initial.profileIcons[1]||initial.profileIcons[0];document.getElementById('profileName').value=initial.profile.name;document.getElementById('profileSave').onclick=()=>post({type:'aero-settings-profile',action:'update',id:initial.profile.id,name:document.getElementById('profileName').value,icon:document.getElementById('profileIcon').value});document.querySelector('[data-profile-action="guest"]').onclick=()=>post({type:'aero-settings-profile',action:'guest'});if(initial.profile.isGuest){['syncSetup','syncPasswords','syncDisable','importChrome','importEdge','importYandex','importBrave','importVivaldi','importOpera','importFirefox','importPasswords','exportPasswords','importCookies','backupCreate','backupRestore','backupRecover'].forEach(id=>document.getElementById(id).disabled=true)}
-document.getElementById('profileList').innerHTML=initial.profiles.map(p=>`<div class="list-item"><div class="avatar">${esc(p.icon)}</div><div><b>${esc(p.name)}</b><div class="meta">${p.id===initial.profile.id?'Текущий · ':''}${p.isDefault?'Основной профиль':'Отдельный профиль'}</div></div><div class="actions">${p.id!==initial.profile.id?`<button class="action" data-profile="switch" data-id="${p.id}">Открыть</button>`:''}${!p.isDefault?`<button class="action danger" data-profile="delete" data-id="${p.id}">Удалить</button>`:''}</div></div>`).join('');document.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>{if(b.dataset.profile==='delete'&&!confirm('Удалить профиль и все его данные?'))return;post({type:'aero-settings-profile',action:b.dataset.profile,id:b.dataset.id})});
+document.getElementById('profilePath').textContent=initial.profile.isGuest?'Временный гостевой каталог':initial.profile.webViewDataFolder;const avatarOptions=initial.profileIcons.map(icon=>`<option value="${esc(icon)}">${esc(icon)}</option>`).join('');document.getElementById('profileIcon').innerHTML=avatarOptions;document.getElementById('newProfileIcon').innerHTML=avatarOptions;document.getElementById('profileIcon').value=initial.profile.icon;document.getElementById('newProfileIcon').value=initial.profileIcons[1]||initial.profileIcons[0];document.getElementById('profileName').value=initial.profile.name;document.getElementById('profilePhoto').innerHTML=initial.profileAvatar?`<img src="${initial.profileAvatar}" alt="">`:esc(initial.profile.icon);document.getElementById('profilePhotoClear').hidden=!initial.profileAvatar;document.querySelectorAll('[data-profile-photo]').forEach(b=>b.onclick=()=>post({type:'aero-settings-profile',action:b.dataset.profilePhoto,id:initial.profile.id}));document.getElementById('profileSave').onclick=()=>post({type:'aero-settings-profile',action:'update',id:initial.profile.id,name:document.getElementById('profileName').value,icon:document.getElementById('profileIcon').value});document.querySelector('[data-profile-action="guest"]').onclick=()=>post({type:'aero-settings-profile',action:'guest'});if(initial.profile.isGuest){['syncSetup','syncPasswords','syncDisable','importChrome','importEdge','importYandex','importBrave','importVivaldi','importOpera','importFirefox','importPasswords','exportPasswords','importCookies','backupCreate','backupRestore','backupRecover'].forEach(id=>document.getElementById(id).disabled=true)}
+document.getElementById('profileList').innerHTML=initial.profiles.map(p=>`<div class="list-item"><div class="avatar">${p.avatar?`<img src="${p.avatar}" alt="">`:esc(p.icon)}</div><div><b>${esc(p.name)}</b><div class="meta">${p.id===initial.profile.id?'Текущий · ':''}${p.isDefault?'Основной профиль':'Отдельный профиль'}</div></div><div class="actions">${p.id!==initial.profile.id?`<button class="action" data-profile="switch" data-id="${p.id}">Открыть</button>`:''}${!p.isDefault?`<button class="action danger" data-profile="delete" data-id="${p.id}">Удалить</button>`:''}</div></div>`).join('');document.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>{if(b.dataset.profile==='delete'&&!confirm('Удалить профиль и все его данные?'))return;post({type:'aero-settings-profile',action:b.dataset.profile,id:b.dataset.id})});
 document.getElementById('profileCreate').onclick=()=>post({type:'aero-settings-profile',action:'create',name:document.getElementById('newProfileName').value,icon:document.getElementById('newProfileIcon').value});
 let toastTimer;function toast(message,error=false){const t=document.getElementById('toast');t.setAttribute('role',error?'alert':'status');t.textContent=message;t.className='toast show'+(error?' error':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='toast',3200)}window.aeroSettingsStatus=x=>toast(x.status,x.isError);
 

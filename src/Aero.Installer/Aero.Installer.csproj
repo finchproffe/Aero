@@ -17,6 +17,9 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Aero.Installer</RootNamespace>
     <AssemblyName>AeroSetup</AssemblyName>
+    <!-- MRT Core looks for resources.pri first, then <exe name>.pri; a fixed name keeps
+         the XAML resources loadable after the downloaded file is renamed. -->
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AeroIcon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>

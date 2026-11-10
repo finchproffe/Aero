@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Aero.App;
 
@@ -20,6 +22,9 @@ public sealed partial class MainWindow
     {
         ProfileToolbarIconText.Text = _browserProfile.Icon;
         ProfileMenuIconText.Text = _browserProfile.Icon;
+        bool hasPhoto = BrowserProfileManager.GetAvatarPath(_browserProfile) is not null;
+        MenuButton.Content = hasPhoto ? BuildProfileAvatarVisual(_browserProfile, 22, 16) : ProfileToolbarIconText;
+        ProfileMenuIconHost.Child = hasPhoto ? BuildProfileAvatarVisual(_browserProfile, 32, 17) : ProfileMenuIconText;
         ProfileMenuNameText.Text = _browserProfile.Name;
         ProfileMenuSubtitleText.Text = _isPrivateWindow
             ? AeroLocalizer.Get("Profile.PrivateSwitch")
@@ -52,14 +57,7 @@ public sealed partial class MainWindow
         });
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        TextBlock icon = new()
-        {
-            Text = profile.Icon,
-            FontSize = 16,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        content.Children.Add(icon);
+        content.Children.Add(BuildProfileAvatarVisual(profile, 24, 16));
 
         TextBlock name = new()
         {
@@ -121,6 +119,7 @@ public sealed partial class MainWindow
     private async Task<BrowserProfile?> ShowCreateProfileDialogAsync()
     {
         string selectedAvatar = BrowserProfileManager.AvailableIcons[1];
+        byte[]? selectedPhoto = null;
         TextBlock selectedAvatarPreview = new()
         {
             Text = selectedAvatar,
@@ -177,6 +176,8 @@ public sealed partial class MainWindow
             {
                 selectedAvatar = (string)avatarButton.Tag;
                 selectedAvatarPreview.Text = selectedAvatar;
+                selectedPhoto = null;
+                preview.Child = selectedAvatarPreview;
             };
             AutomationProperties.SetName(
                 avatarButton,
@@ -195,6 +196,38 @@ public sealed partial class MainWindow
         });
         content.Children.Add(avatarGrid);
 
+        Button photoButton = new()
+        {
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Children =
+                {
+                    new FontIcon { Glyph = "", FontSize = 14 },
+                    new TextBlock { Text = AeroLocalizer.Get("Profile.UploadPhoto") }
+                }
+            }
+        };
+        photoButton.Click += async (_, _) =>
+        {
+            // The dialog stays open: the file picker is a separate system window.
+            if (await PickProfileAvatarAsync() is byte[] png)
+            {
+                selectedPhoto = png;
+                BitmapImage image = new();
+                using (Windows.Storage.Streams.InMemoryRandomAccessStream stream = new())
+                {
+                    await stream.WriteAsync(png.AsBuffer());
+                    stream.Seek(0);
+                    await image.SetSourceAsync(stream);
+                }
+
+                preview.Child = BuildAvatarEllipse(image, 50);
+            }
+        };
+        content.Children.Add(photoButton);
+
         ContentDialog dialog = new()
         {
             XamlRoot = RootGrid.XamlRoot,
@@ -205,9 +238,18 @@ public sealed partial class MainWindow
             DefaultButton = ContentDialogButton.Primary
         };
         ContentDialogResult result = await dialog.ShowAsync();
-        return result == ContentDialogResult.Primary
-            ? BrowserProfileManager.Create(nameBox.Text, selectedAvatar)
-            : null;
+        if (result != ContentDialogResult.Primary)
+        {
+            return null;
+        }
+
+        BrowserProfile created = BrowserProfileManager.Create(nameBox.Text, selectedAvatar);
+        if (selectedPhoto is not null)
+        {
+            BrowserProfileManager.SetAvatar(created, selectedPhoto);
+        }
+
+        return created;
     }
 
     private async void OpenGuestProfileMenuButton_Click(object sender, RoutedEventArgs e)

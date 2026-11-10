@@ -95,6 +95,12 @@ public sealed partial class MainWindow
 
         if (!_tabDragActive)
         {
+            // shortcut: drag-reorder is X-based, so vertical tabs reorder with Ctrl+Shift+PgUp/PgDn only; port the slot geometry to Y if wanted.
+            if (IsVerticalTabStrip)
+            {
+                return;
+            }
+
             double deltaX = viewportPoint.X - _tabDragStartX;
             double deltaY = viewportPoint.Y - _tabDragStartY;
             if ((deltaX * deltaX) + (deltaY * deltaY) <

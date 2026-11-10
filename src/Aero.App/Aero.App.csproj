@@ -148,6 +148,13 @@
     <Content Include="ThirdParty\Manrope\OFL.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Interface style fonts: fontTools subsets, see NOTICE.md. -->
+    <Content Include="Assets\Fonts\GoogleSansFlex.ttf;Assets\Fonts\RobotoFlex.ttf;Assets\Fonts\Inter.ttf;Assets\Fonts\AeroExpressiveIcons.ttf;Assets\Fonts\AeroGlassIcons.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ThirdParty\GoogleSansFlex\OFL.txt;ThirdParty\RobotoFlex\OFL.txt;ThirdParty\Inter\OFL.txt;ThirdParty\MaterialSymbols\LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="ThirdParty\uBlockOrigin\LICENSE.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -37,6 +37,25 @@ public enum InterfaceDensity
     Compact
 }
 
+public enum InterfaceStyle
+{
+    Aero,
+    LiquidGlass,
+    Material3,
+    Fluent,
+    Oled,
+    Sidebar
+}
+
+public enum TabStripPosition
+{
+    Top,
+    BelowToolbar,
+    Bottom,
+    Left,
+    Right
+}
+
 public enum TabSizeMode
 {
     Compact,
@@ -208,6 +227,12 @@ public sealed class BrowserSettings
     public MemorySaverMode MemorySaverMode { get; set; } = MemorySaverMode.Balanced;
 
     public InterfaceDensity InterfaceDensity { get; set; } = InterfaceDensity.Comfortable;
+
+    public InterfaceStyle InterfaceStyle { get; set; } = InterfaceStyle.Aero;
+
+    public TabStripPosition TabPosition { get; set; } = TabStripPosition.Top;
+
+    public int VerticalTabWidth { get; set; } = 240;
 
     public TabSizeMode TabSize { get; set; } = TabSizeMode.Medium;
 
@@ -526,6 +551,7 @@ public sealed class BrowserSettings
         AutomaticBackupIntervalHours = Math.Clamp(AutomaticBackupIntervalHours, 1, 168);
         BackupRetentionCount = Math.Clamp(BackupRetentionCount, 2, 20);
         TabBarHeight = Math.Clamp(TabBarHeight, 36, 60);
+        VerticalTabWidth = Math.Clamp(VerticalTabWidth, 160, 420);
         TabBarBackgroundOpacity = Math.Clamp(TabBarBackgroundOpacity, 20, 100);
         TabBarBackgroundColor = NormalizeColor(TabBarBackgroundColor, "#17212B");
         TabCornerRadius = Math.Clamp(TabCornerRadius, 0, 30);
