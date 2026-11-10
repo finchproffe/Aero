@@ -10,7 +10,7 @@ namespace Aero.Security.TestLab;
 
 internal static class Program
 {
-    private const string Version = "0.25.2.0";
+    private const string Version = "0.25.3.0";
 
     public static async Task<int> Main(string[] args)
     {
@@ -405,7 +405,7 @@ internal static class Program
     private static int ShowHelp()
     {
         Console.WriteLine("""
-Aero.Security.TestLab 0.25.2.0
+Aero.Security.TestLab 0.25.3.0
 
 Commands:
   marker [--kind PASSWORD]
