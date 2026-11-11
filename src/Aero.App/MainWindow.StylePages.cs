@@ -161,14 +161,14 @@ button.primary{background:var(--accent);color:var(--on-accent)}
 
     private string BuildGlassPageCss(string page, bool dark, bool defaultHomeBackground)
     {
-        // macOS Tahoe, not a poster: pages sit on the window's own glass (see ApplyPageBackdrop),
-        // groups are quiet translucent fills, controls are small and the accent is the only colour.
+        // Windows 11 flyout look, like the tray menu: pages sit on the window's acrylic (see
+        // ApplyPageBackdrop), hairline strokes, 8/4 px radii, subtle fills, accent is the only colour.
         Color accent = GetConfiguredAccentColor();
         (_, double chroma, double hue) = ToLch(accent);
         Color selection = FromLch(dark ? 46 : 50, Math.Max(chroma, 45), hue); // keeps white text readable
-        string fonts = InlineFont("Inter", "Inter.ttf", "100 900") + InlineFont("Aero Glass Icons", "AeroGlassIcons.ttf", "400");
+        string fonts = InlineFont("Aero Glass Icons", "AeroGlassIcons.ttf", "400");
         string roles = $$"""
-:root:root,html[data-theme][data-theme]{color-scheme:{{(dark ? "dark" : "light")}};--bg:transparent;--side:transparent;--card:var(--g-group);--raised:var(--g-control);--line:var(--g-sep);--control-line:transparent;--text:{{(dark ? "rgba(255,255,255,.88)" : "rgba(0,0,0,.85)")}};--muted:{{(dark ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.5)")}};--accent:{{Css(selection)}};--on-accent:#fff;--g-group:{{(dark ? "rgba(255,255,255,.045)" : "rgba(255,255,255,.55)")}};--g-panel:{{(dark ? "rgba(40,40,44,.55)" : "rgba(246,246,248,.7)")}};--g-edge:{{(dark ? "rgba(255,255,255,.1)" : "rgba(0,0,0,.07)")}};--g-rim:{{(dark ? "rgba(255,255,255,.14)" : "rgba(255,255,255,.9)")}};--g-sep:{{(dark ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)")}};--g-control:{{(dark ? "rgba(255,255,255,.1)" : "rgba(0,0,0,.05)")}};--g-control-hover:{{(dark ? "rgba(255,255,255,.15)" : "rgba(0,0,0,.08)")}};font:13px/1.4 Inter,"Segoe UI Variable Text",sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.006em}
+:root:root,html[data-theme][data-theme]{color-scheme:{{(dark ? "dark" : "light")}};--bg:transparent;--side:transparent;--card:var(--g-group);--raised:var(--g-control);--line:var(--g-sep);--control-line:transparent;--text:{{(dark ? "rgba(255,255,255,.88)" : "rgba(0,0,0,.85)")}};--muted:{{(dark ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.5)")}};--accent:{{Css(selection)}};--on-accent:#fff;--g-group:{{(dark ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.7)")}};--g-panel:{{(dark ? "rgba(44,44,44,.92)" : "rgba(249,249,249,.92)")}};--g-edge:{{(dark ? "rgba(255,255,255,.09)" : "rgba(0,0,0,.06)")}};--g-rim:transparent;--g-sep:{{(dark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)")}};--g-control:{{(dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.7)")}};--g-control-hover:{{(dark ? "rgba(255,255,255,.08)" : "rgba(249,249,249,.5)")}};font:14px/1.4 "Segoe UI Variable Text","Segoe UI",sans-serif}
 html,html[data-theme],body{background:transparent}
 .sym{font-family:"Aero Glass Icons";font-style:normal;font-weight:400;line-height:1}
 ::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{border:3px solid transparent;border-radius:6px;background:var(--g-control-hover) padding-box}::-webkit-scrollbar-track{background:transparent}
@@ -180,69 +180,68 @@ html,html[data-theme],body{background:transparent}
             return fonts + roles + background + """
 main{padding-top:max(96px,24vh)}
 .subtitle{color:var(--muted)}
-form{height:40px;gap:10px;padding:0 6px 0 14px;border:1px solid var(--g-edge);border-radius:20px;background:var(--g-group);box-shadow:inset 0 1px 0 var(--g-rim);transition:background-color .15s}
+form{height:40px;gap:10px;padding:0 6px 0 14px;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group);transition:background-color .15s}
 form:hover{border-color:var(--g-edge);background:var(--g-control)}
 form:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
 #aero-search-query{font-size:15px;color:var(--text)}
 #aero-search-query::placeholder{color:var(--muted)}
 #quick-links{gap:6px;margin:28px 0 0;justify-content:center}
-.shortcut{width:88px;height:96px;padding:10px 4px 6px;border-radius:12px}
+.shortcut{width:88px;height:96px;padding:10px 4px 6px;border-radius:8px}
 .shortcut:hover{background:var(--g-control)}
-.shortcut-icon{width:48px;height:48px;border:1px solid var(--g-edge);border-radius:12px;background:var(--g-group);box-shadow:inset 0 1px 0 var(--g-rim);color:var(--text);font-size:18px}
+.shortcut-icon{width:48px;height:48px;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group);box-shadow:inset 0 1px 0 var(--g-rim);color:var(--text);font-size:18px}
 .shortcut-icon img{width:26px;height:26px}
 .shortcut-label{margin-top:4px;font-size:12px;color:var(--text)}
 .shortcut-menu{border-radius:6px}
-dialog{border:1px solid var(--g-edge);border-radius:16px;background:var(--g-panel);backdrop-filter:blur(30px) saturate(160%);color:var(--text)}
-.field input{min-height:28px;border:1px solid var(--g-edge);border-radius:6px;background:var(--g-control);color:var(--text)}
+dialog{border:1px solid var(--g-edge);border-radius:8px;background:var(--g-panel);backdrop-filter:blur(30px) saturate(160%);color:var(--text)}
+.field input{min-height:28px;border:1px solid var(--g-edge);border-radius:4px;background:var(--g-control);color:var(--text)}
 .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
-.dialog-actions button{min-height:28px;padding:0 14px;border:0;border-radius:14px;background:var(--g-control);color:var(--text);font-weight:500}
+.dialog-actions button{min-height:28px;padding:0 14px;border:0;border-radius:4px;background:var(--g-control);color:var(--text);font-weight:500}
 .dialog-actions .primary{background:var(--accent);color:#fff}
-.home-toast{border:1px solid var(--g-edge);border-radius:12px;background:var(--g-panel);backdrop-filter:blur(30px);color:var(--text)}
+.home-toast{border:1px solid var(--g-edge);border-radius:8px;background:var(--g-panel);backdrop-filter:blur(30px);color:var(--text)}
 """;
         }
 
         return fonts + roles + """
 body{grid-template-columns:244px minmax(0,1fr)}
-aside{margin:8px 0 8px 8px;height:calc(100vh - 16px);padding:10px 8px;border:1px solid var(--g-edge);border-radius:18px;background:var(--g-group);box-shadow:inset 0 1px 0 var(--g-rim);scrollbar-width:none}
-.brand{padding:6px 8px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+aside{margin:8px 0 8px 8px;height:calc(100vh - 16px);padding:10px 8px;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group);scrollbar-width:none}
+.brand{padding:6px 8px 10px;font-size:12px;font-weight:600;color:var(--muted)}
 .settings-search{margin:0 0 10px}
-.settings-search input{height:28px;min-height:28px;padding:0 10px;border:0;border-radius:8px;background:var(--g-control)}
+.settings-search input{height:28px;min-height:28px;padding:0 10px;border:0;border-radius:4px;background:var(--g-control)}
 nav{gap:1px}
-nav button{min-height:30px;padding:4px 6px;gap:8px;border-radius:7px;font-size:13px;color:var(--text)}
+nav button{min-height:32px;padding:4px 8px;gap:10px;border-radius:4px;font-size:14px;color:var(--text)}
 nav button:hover{background:var(--g-control)}
-nav button.active{background:var(--accent);color:#fff}
-nav button.active:before{display:none}
-nav .sym{display:grid;place-items:center;width:20px;height:20px;border-radius:5px;color:#fff;font-size:13px;background:#8e8e93}
-nav button:nth-child(2) .sym{background:#0a84ff}nav button:nth-child(3) .sym{background:#30b0c7}nav button:nth-child(4) .sym{background:#5e5ce6}nav button:nth-child(5) .sym{background:#34c759}nav button:nth-child(6) .sym{background:#ff9500}nav button:nth-child(7) .sym{background:#af52de}nav button:nth-child(8) .sym{background:#007aff}nav button:nth-child(9) .sym{background:#ff3b30}nav button:nth-child(10) .sym{background:#8e8e93}nav button:nth-child(11) .sym{background:#a2845e}
+nav button.active{position:relative;background:var(--g-control-hover)}
+nav button.active:before{content:"";display:block;position:absolute;left:0;top:50%;width:3px;height:16px;margin-top:-8px;border-radius:2px;background:var(--accent)}
+nav .sym{display:grid;place-items:center;width:20px;height:20px;color:var(--text);font-size:16px;background:transparent}
 .version{padding:12px 8px 0;font-size:11px}
 main{width:min(720px,100%);padding:28px clamp(20px,4vw,40px) 80px}
 h1{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.3px;margin:0 0 2px}
 .lead{margin:0 0 18px;font-size:13px}
 h2{font-size:13px;font-weight:600}
 .hint,.meta,.label span{font-size:11.5px}
-main .card,main .card:last-child{margin:0 0 20px;padding:0;border:1px solid var(--g-edge);border-radius:12px;background:var(--g-group)}
+main .card,main .card:last-child{margin:0 0 20px;padding:0;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group)}
 .card-head{margin:10px 12px 6px}
 .card>.hint,.card>.actions,.card>.chips,.card>.stack,.card>.check-grid{padding-left:12px;padding-right:12px}
 .row{grid-template-columns:minmax(0,1fr) minmax(150px,240px);gap:16px;min-height:42px;padding:7px 12px;border-top:1px solid var(--g-sep)}
 .card>.row:first-child,.card>:not(.row)+.row{border-top:0}
 .label b{font-weight:400}
-input,select,textarea{min-height:24px;padding:2px 8px;border:1px solid var(--g-edge);border-radius:6px;background:var(--g-control);color:var(--text);font-size:13px}
+input,select,textarea{min-height:28px;padding:2px 8px;border:1px solid var(--g-edge);border-radius:4px;background:var(--g-control);color:var(--text);font-size:14px}
 select{padding-right:4px}
 input:hover,select:hover{background:var(--g-control-hover)}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
 input[type=color]{height:24px;padding:2px}
-button.action{min-height:24px;padding:0 12px;border:0;border-radius:12px;background:var(--g-control);color:var(--text);font-weight:500}
+button.action{min-height:28px;padding:0 12px;border:1px solid var(--g-edge);border-radius:4px;background:var(--g-control);color:var(--text);font-weight:500}
 button.action:hover:not(:disabled){filter:none;background:var(--g-control-hover)}
 button.primary,button.primary:hover:not(:disabled){background:var(--accent);color:#fff}
 .row>input[type=checkbox]{width:32px;height:18px;min-height:18px;border:0;border-radius:9px;background:var(--g-control-hover)}
 .row>input[type=checkbox]:before{top:2px;left:2px;width:14px;height:14px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s cubic-bezier(.3,1.3,.5,1)}
 .row>input[type=checkbox]:checked{background:var(--accent)}
 .row>input[type=checkbox]:checked:before{background:#fff;transform:translateX(14px)}
-.toast{border:1px solid var(--g-edge);border-radius:10px;padding:8px 12px;background:var(--g-panel);backdrop-filter:blur(30px) saturate(160%);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast{border:1px solid var(--g-edge);border-radius:8px;padding:8px 12px;background:var(--g-panel);backdrop-filter:blur(30px) saturate(160%);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .list-item{padding:8px 12px;border-top:1px solid var(--g-sep)}
 .list-item:first-child{border-top:0}
-.avatar{width:28px;height:28px;border-radius:6px;background:var(--g-control)}
-.chip{border-radius:5px;background:var(--g-control)}
+.avatar{width:28px;height:28px;border-radius:4px;background:var(--g-control)}
+.chip{border-radius:4px;background:var(--g-control)}
 """;
     }
 }

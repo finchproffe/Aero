@@ -325,5 +325,14 @@
   "Ui.Copy": "Копировать",
   "Ui.Paste": "Вставить",
   "Ui.Paste and go": "Вставить и перейти",
-  "Ui.Select all": "Выделить всё"
+  "Ui.Select all": "Выделить всё",
+  "Ui.Page zoom": "Масштаб страницы",
+  "Ui.Show Aero": "Показать Aero",
+  "Ui.Hide Aero": "Скрыть Aero",
+  "Ui.Shield mode": "Режим защиты",
+  "Ui.Memory saver": "Экономия памяти",
+  "Ui.Maximum": "Максимальный",
+  "Ui.Theme": "Тема",
+  "Ui.System": "Системная",
+  "Ui.Exit": "Выйти"
 }

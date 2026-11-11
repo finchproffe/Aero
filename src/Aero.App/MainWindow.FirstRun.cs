@@ -210,9 +210,15 @@ public sealed partial class MainWindow
         }
 
         _settings.OnboardingVersion = CurrentOnboardingVersion;
+        if (_settings.InterfaceStyle == InterfaceStyle.Material3)
+        {
+            // The default style also brings its tab preset, as if the user had picked it.
+            ApplyInterfaceStyleBundle(InterfaceStyle.Aero);
+        }
+
         _settings.Save();
         AeroLocalizer.Configure(_settings.AppLanguage);
-        ApplyTheme();
+        ApplyAllRuntimeSettings(nameof(BrowserSettings.InterfaceStyle));
         ApplyLocalization();
     }
 

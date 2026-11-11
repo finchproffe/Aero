@@ -34,8 +34,9 @@ public sealed partial class MainWindow
 
     private static StyleGeometry GetStyleGeometry(InterfaceStyle style) => style switch
     {
-        InterfaceStyle.LiquidGlass => new(34, 999, 38, 19, true, false, 54, new Thickness(0), 0, false, true, false, 24, 10, 26, 18, 0),
-        InterfaceStyle.Material3 => new(40, 999, 48, 24, false, false, 64, new Thickness(0), 0, false, false, false, 28, 12, 28, 16, 0),
+        InterfaceStyle.LiquidGlass => new(34, 4, 36, 8, true, false, 52, new Thickness(0), 0, false, true, false, 8, 10, 8, 8, 0),
+        // Material 3 sizes at 85% of the spec (40/48/64 px): that is this style's 100%.
+        InterfaceStyle.Material3 => new(34, 999, 40, 20, false, false, 54, new Thickness(0), 0, false, false, false, 24, 10, 24, 14, 0),
         InterfaceStyle.Fluent => new(32, 4, 32, 4, true, true, 44, new Thickness(0), 0, false, false, true, 8, 0, 8, 8, 0),
         InterfaceStyle.Oled => new(30, 6, 30, 6, false, false, 40, new Thickness(0), 0, false, false, true, 0, 0, 10, 8, 0),
         InterfaceStyle.Sidebar => new(32, 10, 34, 10, false, false, 56, new Thickness(8, 6, 8, 6), 12, true, false, false, 14, 8, 16, 12, 8),
@@ -51,10 +52,7 @@ public sealed partial class MainWindow
         InterfaceStyle.Material3 => (
             "ms-appx:///Assets/Fonts/GoogleSansFlex.ttf#Google Sans Flex, ms-appx:///Assets/Fonts/RobotoFlex.ttf#Roboto Flex",
             "ms-appx:///Assets/Fonts/AeroExpressiveIcons.ttf#Aero Expressive Icons, " + SegoeIconFont),
-        InterfaceStyle.LiquidGlass => (
-            "ms-appx:///Assets/Fonts/Inter.ttf#Inter",
-            "ms-appx:///Assets/Fonts/AeroGlassIcons.ttf#Aero Glass Icons, " + SegoeIconFont),
-        InterfaceStyle.Fluent => ("Segoe UI Variable Text, Segoe UI", SegoeIconFont),
+        InterfaceStyle.LiquidGlass or InterfaceStyle.Fluent => ("Segoe UI Variable Text, Segoe UI", SegoeIconFont),
         _ => (ManropeFont, SegoeIconFont)
     };
 
@@ -105,7 +103,8 @@ public sealed partial class MainWindow
         switch (style)
         {
             case InterfaceStyle.LiquidGlass:
-                _settings.TabShape = TabShapeStyle.Pill;
+                _settings.TabShape = TabShapeStyle.Rounded;
+                _settings.TabCornerRadius = 6;
                 _settings.TabSurfaceStyle = TabSurfaceStyle.Theme;
                 _settings.TabBarHeight = 42;
                 _settings.TabSpacing = 6;
@@ -117,17 +116,17 @@ public sealed partial class MainWindow
                 _settings.TabBoldActiveText = true;
                 _settings.TabInactiveScalePercent = 100;
                 _settings.TabHoverLift = 0;
-                _settings.TabAnimation = TabAnimationStyle.Bounce;
-                _settings.TabAnimationDuration = 320;
+                _settings.TabAnimation = TabAnimationStyle.Subtle;
+                _settings.TabAnimationDuration = 200;
                 _settings.TabFontSize = 12;
                 break;
             case InterfaceStyle.Material3:
                 _settings.TabShape = TabShapeStyle.Pill;
                 _settings.TabSurfaceStyle = TabSurfaceStyle.Theme;
-                _settings.TabBarHeight = 48;
-                _settings.TabSpacing = 4;
-                _settings.TabStripPadding = 8;
-                _settings.TabHorizontalPadding = 16;
+                _settings.TabBarHeight = 41;
+                _settings.TabSpacing = 3;
+                _settings.TabStripPadding = 7;
+                _settings.TabHorizontalPadding = 14;
                 _settings.TabBorderThickness = 0;
                 _settings.TabInactiveOpacity = 0;
                 _settings.TabHoverLift = 0;
@@ -136,8 +135,8 @@ public sealed partial class MainWindow
                 _settings.TabAnimation = TabAnimationStyle.Bounce;
                 _settings.TabAnimationDuration = 350;
                 _settings.TabBoldActiveText = true;
-                _settings.TabFontSize = 13;
-                _settings.TabIconSize = 18;
+                _settings.TabFontSize = 11;
+                _settings.TabIconSize = 15;
                 break;
             case InterfaceStyle.Fluent:
                 _settings.TabCornerRadius = 8;
@@ -282,8 +281,7 @@ public sealed partial class MainWindow
                 group.Background = GetChromeBrush("AeroAddressBrush");
                 group.BorderBrush = BuildGlassEdgeBrush(dark);
                 group.BorderThickness = new Thickness(1);
-                // An exact half-height radius: WinUI turns oversized radii into an ellipse.
-                group.CornerRadius = new CornerRadius((button + 6) / 2);
+                group.CornerRadius = new CornerRadius(8);
                 group.Margin = new Thickness(-3, -3, -3, -3);
             }
         }
@@ -314,7 +312,7 @@ public sealed partial class MainWindow
     {
         double scale = style switch
         {
-            InterfaceStyle.Material3 => 1.5,
+            InterfaceStyle.Material3 => 1.3,
             InterfaceStyle.LiquidGlass => 1.2,
             _ => 1
         };
@@ -343,7 +341,7 @@ public sealed partial class MainWindow
         {
             AddTabButton.Background = new SolidColorBrush(scheme.PrimaryContainer);
             AddTabButton.Foreground = new SolidColorBrush(scheme.OnPrimaryContainer);
-            AddTabButton.CornerRadius = new CornerRadius(12);
+            AddTabButton.CornerRadius = new CornerRadius(10);
             AddTabButton.Resources[stateKeys[0]] = new SolidColorBrush(BlendColors(scheme.PrimaryContainer, scheme.OnPrimaryContainer, 0.08));
             AddTabButton.Resources[stateKeys[1]] = new SolidColorBrush(BlendColors(scheme.PrimaryContainer, scheme.OnPrimaryContainer, 0.12));
             AddTabButton.Resources[stateKeys[2]] = new SolidColorBrush(scheme.OnPrimaryContainer);
@@ -360,27 +358,17 @@ public sealed partial class MainWindow
         }
     }
 
-    private static Brush BuildGlassEdgeBrush(bool dark)
-    {
-        // A bright upper rim and a fainter lower one read as light caught by the glass.
-        LinearGradientBrush edge = new()
-        {
-            StartPoint = new Windows.Foundation.Point(0, 0),
-            EndPoint = new Windows.Foundation.Point(0, 1)
-        };
-        edge.GradientStops.Add(new GradientStop { Offset = 0, Color = dark ? Color.FromArgb(0x80, 255, 255, 255) : Color.FromArgb(0xFF, 255, 255, 255) });
-        edge.GradientStops.Add(new GradientStop { Offset = 0.45, Color = dark ? Color.FromArgb(0x1C, 255, 255, 255) : Color.FromArgb(0x90, 255, 255, 255) });
-        edge.GradientStops.Add(new GradientStop { Offset = 1, Color = dark ? Color.FromArgb(0x30, 255, 255, 255) : Color.FromArgb(0x24, 0, 0, 0) });
-        return edge;
-    }
+    // Same quiet hairline as the tray menu and Windows 11 flyouts: no glossy rim.
+    private static Brush BuildGlassEdgeBrush(bool dark) => new SolidColorBrush(
+        dark ? Color.FromArgb(0x17, 255, 255, 255) : Color.FromArgb(0x0F, 0, 0, 0));
 
-    // In-app acrylic blurs whatever is behind the sheet.
+    // The Windows 11 flyout acrylic recipe (AcrylicInAppFillColorDefault).
     private static Brush BuildGlassSheetBrush(bool dark) => new AcrylicBrush
     {
-        TintColor = dark ? Color.FromArgb(255, 30, 32, 38) : Color.FromArgb(255, 246, 247, 250),
-        TintOpacity = dark ? 0.42 : 0.5,
-        TintLuminosityOpacity = dark ? 0.62 : 0.72,
-        FallbackColor = dark ? Color.FromArgb(240, 30, 32, 38) : Color.FromArgb(240, 246, 247, 250)
+        TintColor = dark ? Color.FromArgb(255, 0x2C, 0x2C, 0x2C) : Color.FromArgb(255, 0xFC, 0xFC, 0xFC),
+        TintOpacity = dark ? 0.15 : 0,
+        TintLuminosityOpacity = dark ? 0.96 : 0.85,
+        FallbackColor = dark ? Color.FromArgb(255, 0x2C, 0x2C, 0x2C) : Color.FromArgb(255, 0xF9, 0xF9, 0xF9)
     };
 
     // Code creates chrome buttons from the "ChromeIconButtonStyle" resource, so replacing the
@@ -645,21 +633,21 @@ public sealed partial class MainWindow
         {
             InterfaceStyle.LiquidGlass => key switch
             {
-                "AeroWindowBrush" => dark ? Color.FromArgb(0x50, 14, 16, 20) : Color.FromArgb(0x60, 244, 246, 250),
+                // Windows 11 fill and stroke tokens, so the chrome matches the tray menu.
+                "AeroWindowBrush" => dark ? Color.FromArgb(0x50, 0x1C, 0x1C, 0x1C) : Color.FromArgb(0x60, 0xF3, 0xF3, 0xF3),
                 "AeroTitleBarBrush" or "AeroToolbarBrush" => Color.FromArgb(0, color.R, color.G, color.B),
-                "AeroActiveTabBrush" => dark ? White(0x2A) : White(0xC0),
-                "AeroTabHoverBrush" => dark ? White(0x14) : White(0x70),
-                "AeroTabOutlineBrush" => dark ? White(0x38) : White(0xF0),
-                "AeroAddressBrush" => dark ? White(0x1C) : White(0x8C),
-                "AeroAddressFocusedBrush" => dark ? White(0x28) : White(0xD8),
-                "AeroSurfaceBrush" => dark ? Color.FromArgb(0xD0, 28, 30, 36) : Color.FromArgb(0xD8, 248, 249, 251),
-                "AeroRaisedSurfaceBrush" => dark ? White(0x1A) : White(0xA0),
-                "AeroHoverBrush" or "ButtonBackgroundPointerOver" => dark ? White(0x1E) : Black(0x0E),
-                "AeroPressedBrush" or "ButtonBackgroundPressed" => dark ? White(0x2C) : Black(0x18),
-                "AeroSoftBorderBrush" => dark ? White(0x26) : White(0xC8),
-                "AeroBorderBrush" => dark ? White(0x40) : Black(0x22),
-                "AeroSecondaryTextBrush" => dark ? White(0xC0) : Black(0xA8),
-                "AeroMutedTextBrush" => dark ? White(0x90) : Black(0x80),
+                "AeroActiveTabBrush" => dark ? White(0x15) : White(0xB3),
+                "AeroTabHoverBrush" => dark ? White(0x0F) : Black(0x09),
+                "AeroTabOutlineBrush" or "AeroSoftBorderBrush" => dark ? White(0x17) : Black(0x0F),
+                "AeroAddressBrush" => dark ? White(0x0F) : White(0xB3),
+                "AeroAddressFocusedBrush" => dark ? Color.FromArgb(0xB3, 0x1E, 0x1E, 0x1E) : White(0xFF),
+                "AeroSurfaceBrush" => dark ? Color.FromArgb(0xE6, 0x20, 0x20, 0x20) : Color.FromArgb(0xE6, 0xF3, 0xF3, 0xF3),
+                "AeroRaisedSurfaceBrush" => dark ? Color.FromArgb(0xF2, 0x2C, 0x2C, 0x2C) : Color.FromArgb(0xF2, 0xF9, 0xF9, 0xF9),
+                "AeroHoverBrush" or "ButtonBackgroundPointerOver" => dark ? White(0x0F) : Black(0x09),
+                "AeroPressedBrush" or "ButtonBackgroundPressed" => dark ? White(0x0A) : Black(0x06),
+                "AeroBorderBrush" => dark ? White(0x24) : Black(0x1A),
+                "AeroSecondaryTextBrush" => dark ? White(0xC5) : Black(0x9E),
+                "AeroMutedTextBrush" => dark ? White(0x87) : Black(0x72),
                 _ => color
             },
             InterfaceStyle.Material3 when m is not null => key switch

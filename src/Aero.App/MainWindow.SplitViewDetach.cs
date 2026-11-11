@@ -252,6 +252,7 @@ public sealed partial class MainWindow
 
         _splitDividerDragging = true;
         SplitDivider.CapturePointer(e.Pointer);
+        SplitDividerGripHighlight.Opacity = 1;
         e.Handled = true;
     }
 
@@ -285,6 +286,17 @@ public sealed partial class MainWindow
         e.Handled = true;
     }
 
+    private void SplitDivider_PointerEntered(object sender, PointerRoutedEventArgs e) =>
+        SplitDividerGripHighlight.Opacity = 1;
+
+    private void SplitDivider_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_splitDividerDragging)
+        {
+            SplitDividerGripHighlight.Opacity = 0;
+        }
+    }
+
     private void SplitDivider_PointerReleased(object sender, PointerRoutedEventArgs e) =>
         FinishSplitDividerDrag(e);
 
@@ -301,6 +313,7 @@ public sealed partial class MainWindow
         }
 
         _splitDividerDragging = false;
+        SplitDividerGripHighlight.Opacity = 0;
         if (releaseCapture)
         {
             try

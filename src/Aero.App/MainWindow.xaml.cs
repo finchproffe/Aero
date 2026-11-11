@@ -772,6 +772,7 @@ public sealed partial class MainWindow : Window
         AddressBox.ContextFlyout = BuildAddressBoxContextFlyout();
         _requestBlocker.FiltersChanged += RequestBlocker_FiltersChanged;
         OpenWindows.Add(this);
+        InitializeTrayIcon();
         Closed += MainWindow_Closed;
     }
 
@@ -1287,6 +1288,7 @@ public sealed partial class MainWindow : Window
             Padding = new Thickness(9, 0, 5, 0),
             CornerRadius = new CornerRadius(11, 11, 3, 3),
             Background = GetTransparentBrush(),
+            BackgroundTransition = new BrushTransition { Duration = TimeSpan.FromMilliseconds(150) },
             BorderBrush = GetTransparentBrush(),
             BorderThickness = new Thickness(0),
             Child = visualRoot,
@@ -4599,6 +4601,12 @@ public sealed partial class MainWindow : Window
     private static ExponentialEase DecelerateEase() =>
         new() { EasingMode = EasingMode.EaseOut, Exponent = 6 };
 
+    // Moves into place (to 0 offset / 1 scale) get the expressive spring; moves away stay decelerate.
+    private EasingFunctionBase SpatialEase(double to) =>
+        EffectiveInterfaceStyle == InterfaceStyle.Material3 && to is 0 or 1
+            ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 }
+            : DecelerateEase();
+
     private void AnimateOpacity(
         UIElement target,
         double from,
@@ -4642,7 +4650,7 @@ public sealed partial class MainWindow : Window
             To = to,
             Duration = new Duration(TimeSpan.FromMilliseconds(
                 GetFrameAlignedAnimationDuration(durationMilliseconds))),
-            EasingFunction = DecelerateEase()
+            EasingFunction = SpatialEase(to)
         };
 
         Storyboard storyboard = new();
@@ -5801,6 +5809,7 @@ public sealed partial class MainWindow : Window
         _passwordVaultService.Dispose();
         _passwordBrokerClient.Dispose();
         OpenWindows.Remove(this);
+        DisposeTrayIconAfterLastWindow();
         CleanupGuestProfileAfterClose();
         CleanupDeletedProfileAfterClose();
     }

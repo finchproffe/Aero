@@ -228,7 +228,7 @@ public sealed class BrowserSettings
 
     public InterfaceDensity InterfaceDensity { get; set; } = InterfaceDensity.Comfortable;
 
-    public InterfaceStyle InterfaceStyle { get; set; } = InterfaceStyle.Aero;
+    public InterfaceStyle InterfaceStyle { get; set; } = InterfaceStyle.Material3;
 
     public TabStripPosition TabPosition { get; set; } = TabStripPosition.Top;
 

@@ -675,18 +675,7 @@ public sealed partial class MainWindow
 
         int currentIndex = FindNearestZoomStepIndex(state.PageZoomFactor);
         int nextIndex = Math.Clamp(currentIndex + Math.Sign(direction), 0, PageZoomSteps.Length - 1);
-        double previousFactor = state.PageZoomFactor;
-        state.PageZoomFactor = PageZoomSteps[nextIndex];
-        if (ReferenceEquals(state, ActiveTab))
-        {
-            UpdatePageToolsUi();
-            if (Math.Abs(previousFactor - state.PageZoomFactor) > 0.001)
-            {
-                ShowPageZoomIndicator(state);
-            }
-        }
-
-        _ = ApplyPageZoomAsync(state);
+        SetPageZoom(state, PageZoomSteps[nextIndex]);
     }
 
     private void ResetPageZoom()
@@ -701,8 +690,13 @@ public sealed partial class MainWindow
             return;
         }
 
+        SetPageZoom(state, 1.0);
+    }
+
+    private void SetPageZoom(BrowserTabState state, double factor)
+    {
         double previousFactor = state.PageZoomFactor;
-        state.PageZoomFactor = 1.0;
+        state.PageZoomFactor = factor;
         if (ReferenceEquals(state, ActiveTab))
         {
             UpdatePageToolsUi();
