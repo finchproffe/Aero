@@ -15,6 +15,7 @@ public sealed partial class BrokerApplication : Application
     private readonly PreparedBrokerLaunch? _launch;
     private readonly Action<int>? _completed;
     private readonly bool _startupProbe;
+    private readonly Func<Task>? _probeWork;
     private int _completionStarted;
 
     internal BrokerApplication(
@@ -31,13 +32,15 @@ public sealed partial class BrokerApplication : Application
     {
     }
 
-    private BrokerApplication(bool startupProbe)
+    private BrokerApplication(bool startupProbe, Func<Task>? probeWork = null)
     {
         _startupProbe = startupProbe;
+        _probeWork = probeWork;
         InitializeApplication();
     }
 
-    internal static BrokerApplication CreateStartupProbe() => new(true);
+    /// <param name="probeWork">Smoke tests: runs on the WinUI dispatcher before the probe exits.</param>
+    internal static BrokerApplication CreateStartupProbe(Func<Task>? probeWork = null) => new(true, probeWork);
 
     private void InitializeApplication()
     {
@@ -51,6 +54,11 @@ public sealed partial class BrokerApplication : Application
         _ = args;
         if (_startupProbe)
         {
+            if (_probeWork is not null)
+            {
+                await _probeWork();
+            }
+
             Exit();
             return;
         }

@@ -68,8 +68,7 @@ public static partial class AppBoundKey
 
         // User processes never run in session 0, so a pipe squatted by malware fails here
         // before the key is sent to it.
-        int serverProcessId = BrokerNativeMethods.GetPipeServerProcessId(pipe.SafePipeHandle);
-        if (!BrokerNativeMethods.TryGetProcessSessionId(serverProcessId, out int session) || session != 0)
+        if (!BrokerNativeMethods.TryGetPipeServerSessionId(pipe.SafePipeHandle, out int session) || session != 0)
         {
             throw new CryptographicException("The Aero key service pipe is not owned by a Windows service.");
         }

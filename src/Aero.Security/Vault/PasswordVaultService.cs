@@ -60,6 +60,7 @@ public sealed class PasswordVaultService : IDisposable
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly object _auditGate = new();
     private readonly PasswordBrokerClient? _passwordBrokerClient;
+    private readonly SimulatedWindowsHello? _simulatedHello;
     private readonly string _processSessionId = Guid.NewGuid().ToString("N");
     private DateTimeOffset _lastFailedPromptUtc;
     private long _auditSequence;
@@ -95,6 +96,13 @@ public sealed class PasswordVaultService : IDisposable
         _cngKeyName = $"{userSid}//Aero//Vault-{keySuffix}";
         _transitionalCngKeyName = $"{userSid}//Aero/Vault/{keySuffix}";
         CryptographicOperations.ZeroMemory(keyNameHash);
+    }
+
+    /// <summary>Smoke tests only: Windows Hello and the TPM Node Lock are replaced by a simulation.</summary>
+    internal PasswordVaultService(string storageDirectory, SimulatedWindowsHello simulatedHello)
+        : this(storageDirectory)
+    {
+        _simulatedHello = simulatedHello;
     }
 
     // Phase 4 deliberately has no time-based global unlock cache. Every protected
@@ -800,8 +808,9 @@ public sealed class PasswordVaultService : IDisposable
                 "Aero Vault needs an active window for Windows Hello verification.");
         }
 
-        UserConsentVerifierAvailability helloAvailability =
-            await UserConsentVerifier.CheckAvailabilityAsync();
+        UserConsentVerifierAvailability helloAvailability = _simulatedHello is null
+            ? await UserConsentVerifier.CheckAvailabilityAsync()
+            : UserConsentVerifierAvailability.Available;
         if (helloAvailability != UserConsentVerifierAvailability.Available)
         {
             throw new PasswordVaultVerificationException(
@@ -1047,6 +1056,11 @@ public sealed class PasswordVaultService : IDisposable
         // The Passport KSP implements RSA PKCS#1 encryption for its protected
         // decryption containers. OAEP-SHA256 is rejected on affected Windows
         // builds with NTE_INVALID_PARAMETER.
+        if (_simulatedHello is not null)
+        {
+            return _simulatedHello.Encrypt(rootKey);
+        }
+
         string keyName = GetExistingHelloKeyName() ?? _cngKeyName;
         return WindowsHelloCngKey.EncryptPkcs1(keyName, rootKey, ownerWindow);
     }
@@ -1057,6 +1071,11 @@ public sealed class PasswordVaultService : IDisposable
         string useContext,
         RootKeyWrapPadding padding = RootKeyWrapPadding.Pkcs1)
     {
+        if (_simulatedHello is not null)
+        {
+            return _simulatedHello.Decrypt(wrappedRootKey);
+        }
+
         string keyName = GetExistingHelloKeyName() ??
             throw new CryptographicException("The non-exportable Aero Vault key is missing.");
         return WindowsHelloCngKey.Decrypt(
@@ -1084,7 +1103,7 @@ public sealed class PasswordVaultService : IDisposable
         return null;
     }
 
-    private bool DoesHelloKeyExist() => GetExistingHelloKeyName() is not null;
+    private bool DoesHelloKeyExist() => _simulatedHello is not null || GetExistingHelloKeyName() is not null;
 
     private bool HasAnyRootKeyEnvelope() =>
         File.Exists(_nodeLockPath) ||
@@ -1161,6 +1180,13 @@ public sealed class PasswordVaultService : IDisposable
         RootKeyWrapPadding padding,
         CancellationToken cancellationToken)
     {
+        if (_simulatedHello is not null)
+        {
+            // A simulated vault must never leave keys behind in the real TPM.
+            await WriteWrappedRootKeyAsync(wrappedRootKey, cancellationToken);
+            return;
+        }
+
         try
         {
             await WriteNodeLockedRootKeyAsync(
@@ -1199,7 +1225,7 @@ public sealed class PasswordVaultService : IDisposable
         WrappedRootKeyEnvelope envelope,
         CancellationToken cancellationToken)
     {
-        if (File.Exists(_nodeLockPath))
+        if (File.Exists(_nodeLockPath) || _simulatedHello is not null)
         {
             return;
         }

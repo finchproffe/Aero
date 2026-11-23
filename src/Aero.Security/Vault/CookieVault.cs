@@ -107,15 +107,15 @@ public sealed class CookieVaultLedger
         cookie.Domain.ToLowerInvariant() + "\n" + cookie.Path + "\n" + cookie.Name;
 }
 
-/// <summary>AES-256-GCM container: version (1) | nonce (12) | tag (16) | ciphertext.</summary>
-public static class CookieVaultFile
+/// <summary>
+/// AES-256-GCM container: version (1) | nonce (12) | tag (16) | ciphertext. Sealing runs in the
+/// Rust core, so the key is read only from protected memory and opened plaintext lands there too.
+/// </summary>
+public static unsafe class CookieVaultFile
 {
-    private const byte Version = 1;
-    private const int NonceSize = 12;
-    private const int TagSize = 16;
-    private const int HeaderSize = 1 + NonceSize + TagSize;
+    private const int HeaderSize = 1 + 12 + 16;
 
-    public static byte[] Seal(ReadOnlySpan<byte> key, IReadOnlyCollection<VaultCookie> cookies, string context)
+    public static byte[] Seal(SecureBuffer key, IReadOnlyCollection<VaultCookie> cookies, string context)
     {
         byte[] plaintext = JsonSerializer.SerializeToUtf8Bytes(cookies);
         try
@@ -129,32 +129,31 @@ public static class CookieVaultFile
     }
 
     /// <exception cref="CryptographicException">Wrong key, wrong profile or tampered file.</exception>
-    public static List<VaultCookie> Open(ReadOnlySpan<byte> key, byte[] sealedData, string context)
+    public static List<VaultCookie> Open(SecureBuffer key, byte[] sealedData, string context)
     {
-        byte[] plaintext = OpenBytes(key, sealedData, context);
-        try
-        {
-            return JsonSerializer.Deserialize<List<VaultCookie>>(plaintext) ?? [];
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(plaintext);
-        }
+        using SecureBuffer plaintext = OpenSecure(key, sealedData, context);
+        return JsonSerializer.Deserialize<List<VaultCookie>>(plaintext.ReadOnlySpan) ?? [];
     }
 
     /// <summary>The same container for any payload (the sync files use it too).</summary>
     public static byte[] SealBytes(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext, string context)
     {
+        using SecureBuffer protectedKey = SecureBuffer.From(key);
+        return SealBytes(protectedKey, plaintext, context);
+    }
+
+    public static byte[] SealBytes(SecureBuffer key, ReadOnlySpan<byte> plaintext, string context)
+    {
         byte[] output = new byte[HeaderSize + plaintext.Length];
-        output[0] = Version;
-        RandomNumberGenerator.Fill(output.AsSpan(1, NonceSize));
-        using AesGcm aes = new(key, TagSize);
-        aes.Encrypt(
-            output.AsSpan(1, NonceSize),
-            plaintext,
-            output.AsSpan(HeaderSize),
-            output.AsSpan(1 + NonceSize, TagSize),
-            Encoding.UTF8.GetBytes(context));
+        byte[] aad = Encoding.UTF8.GetBytes(context);
+        fixed (byte* plain = plaintext)
+        fixed (byte* contextBytes = aad)
+        fixed (byte* sealedData = output)
+        {
+            Check(AeroSecurityNative.VaultSeal(
+                key.Handle, plain, (nuint)plaintext.Length, contextBytes, (nuint)aad.Length, sealedData, (nuint)output.Length));
+        }
+
         return output;
     }
 
@@ -162,27 +161,38 @@ public static class CookieVaultFile
     /// <exception cref="CryptographicException">Wrong key, wrong context or tampered data.</exception>
     public static byte[] OpenBytes(ReadOnlySpan<byte> key, byte[] sealedData, string context)
     {
-        if (sealedData.Length < HeaderSize || sealedData[0] != Version)
+        using SecureBuffer protectedKey = SecureBuffer.From(key);
+        using SecureBuffer plaintext = OpenSecure(protectedKey, sealedData, context);
+        return plaintext.CopyToArray();
+    }
+
+    /// <exception cref="CryptographicException">Wrong key, wrong context or tampered data.</exception>
+    public static SecureBuffer OpenSecure(SecureBuffer key, ReadOnlySpan<byte> sealedData, string context)
+    {
+        byte[] aad = Encoding.UTF8.GetBytes(context);
+        SecretHandle plain;
+        fixed (byte* input = sealedData)
+        fixed (byte* contextBytes = aad)
         {
-            throw new CryptographicException("Unsupported Aero sealed file format.");
+            Check(AeroSecurityNative.VaultOpen(
+                key.Handle, input, (nuint)sealedData.Length, contextBytes, (nuint)aad.Length, out plain));
         }
 
-        byte[] plaintext = new byte[sealedData.Length - HeaderSize];
-        try
+        return SecureBuffer.Adopt(plain);
+    }
+
+    private static void Check(int status)
+    {
+        switch (status)
         {
-            using AesGcm aes = new(key, TagSize);
-            aes.Decrypt(
-                sealedData.AsSpan(1, NonceSize),
-                sealedData.AsSpan(HeaderSize),
-                sealedData.AsSpan(1 + NonceSize, TagSize),
-                plaintext,
-                Encoding.UTF8.GetBytes(context));
-            return plaintext;
-        }
-        catch
-        {
-            CryptographicOperations.ZeroMemory(plaintext);
-            throw;
+            case AeroSecurityNative.Ok:
+                return;
+            case AeroSecurityNative.Rejected:
+                throw new CryptographicException("The Aero sealed data is damaged, tampered or belongs to another key or profile.");
+            case AeroSecurityNative.InvalidArgument:
+                throw new CryptographicException("The Aero vault key or buffer has the wrong size.");
+            default:
+                throw new CryptographicException("Aero could not protect the vault data in memory.");
         }
     }
 }
@@ -205,20 +215,59 @@ public static class CookieVaultKey
         return $"{userSid}//Aero//Cookies-{Convert.ToHexString(hash.AsSpan(0, 12))}";
     }
 
-    /// <summary>With Hello this creates the Hello key if needed (one prompt).</summary>
-    public static byte[] Wrap(byte[] dataKey, bool withHello, string keyName, IntPtr ownerWindow) =>
-        withHello
-            ? [HelloMode, .. WindowsHelloCngKey.EncryptPkcs1(keyName, dataKey, ownerWindow)]
-            : [AppBoundMode, .. AppBoundKey.Wrap(dataKey)];
+    /// <summary>A new data key, generated into protected memory and concealed there.</summary>
+    public static SecureBuffer CreateDataKey() => Concealed(SecureBuffer.Random(32));
 
-    public static byte[] Unwrap(string keyName, byte[] wrapped, IntPtr ownerWindow) =>
-        (wrapped.Length > 1 ? wrapped[0] : 0) switch
+    /// <summary>With Hello this creates the Hello key if needed (one prompt).</summary>
+    public static byte[] Wrap(SecureBuffer dataKey, bool withHello, string keyName, IntPtr ownerWindow)
+    {
+        // The wrapping APIs take managed arrays: the plain copy lives only for this call.
+        byte[] plain = dataKey.CopyToArray();
+        try
+        {
+            return withHello
+                ? [HelloMode, .. WindowsHelloCngKey.EncryptPkcs1(keyName, plain, ownerWindow)]
+                : [AppBoundMode, .. AppBoundKey.Wrap(plain)];
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plain);
+        }
+    }
+
+    /// <summary>The unwrapped key goes straight into concealed protected memory.</summary>
+    public static SecureBuffer Unwrap(string keyName, byte[] wrapped, IntPtr ownerWindow)
+    {
+        byte[] plain = (wrapped.Length > 1 ? wrapped[0] : 0) switch
         {
             AppBoundMode => AppBoundKey.Unwrap(wrapped[1..]),
             HelloMode => WindowsHelloCngKey.Decrypt(
                 keyName, wrapped[1..], ownerWindow, "Unlock your Aero sign-ins", oaepSha256: false),
             _ => throw new CryptographicException("Unknown Aero cookie vault key format.")
         };
+        try
+        {
+            return Concealed(SecureBuffer.From(plain));
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plain);
+        }
+    }
+
+    private static SecureBuffer Concealed(SecureBuffer key)
+    {
+        try
+        {
+            key.Conceal();
+            return key;
+        }
+        catch
+        {
+            key.Dispose();
+            throw;
+        }
+    }
 
     public static bool IsHelloWrapped(byte[] wrapped) => wrapped.Length > 0 && wrapped[0] == HelloMode;
 }

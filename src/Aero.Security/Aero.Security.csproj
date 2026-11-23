@@ -20,4 +20,26 @@
          incorrectly turned it into a Windows App SDK framework-dependent app. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.10" />
   </ItemGroup>
+
+  <!-- The anti-stealer core is Rust (src/Aero.Security.Native). Cargo builds it for the target
+       platform and the DLL ships next to every assembly that references Aero.Security. -->
+  <PropertyGroup>
+    <AeroNativeCrateDir>$(MSBuildThisFileDirectory)..\Aero.Security.Native\</AeroNativeCrateDir>
+    <AeroRustTarget Condition="'$(Platform)' == 'ARM64' or $(RuntimeIdentifier.EndsWith('arm64'))">aarch64-pc-windows-msvc</AeroRustTarget>
+    <AeroRustTarget Condition="'$(AeroRustTarget)' == ''">x86_64-pc-windows-msvc</AeroRustTarget>
+    <AeroCargoTargetDir>$(MSBuildThisFileDirectory)obj\cargo</AeroCargoTargetDir>
+    <AeroNativeDll>$(AeroCargoTargetDir)\$(AeroRustTarget)\release\aero_security_native.dll</AeroNativeDll>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AeroNativeSource Include="$(AeroNativeCrateDir)src\**\*.rs;$(AeroNativeCrateDir)Cargo.toml;$(AeroNativeCrateDir)Cargo.lock" />
+    <Content Include="$(AeroNativeDll)" Link="aero_security_native.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="BuildAeroSecurityNative" BeforeTargets="BeforeBuild" Inputs="@(AeroNativeSource)" Outputs="$(AeroNativeDll)">
+    <Exec Command="cargo build --release --locked --manifest-path &quot;$(AeroNativeCrateDir)Cargo.toml&quot; --target $(AeroRustTarget) --target-dir &quot;$(AeroCargoTargetDir)&quot;"
+          CustomErrorRegularExpression="^error" />
+    <Error Condition="!Exists('$(AeroNativeDll)')"
+           Text="aero_security_native.dll was not built. Install Rust (rustup target add $(AeroRustTarget)) and the MSVC C++ build tools for this platform." />
+  </Target>
 </Project>

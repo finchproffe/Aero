@@ -9,6 +9,11 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
+if (StealerSimulation.IsVictimLaunch(args))
+{
+    Environment.Exit(StealerSimulation.RunVictim(args));
+}
+
 static void Require(bool condition, string message)
 {
     if (!condition)
@@ -308,7 +313,12 @@ CookieVaultReconcileResult expiry = expiring.Reconcile([new ObservedCookie(sid, 
 Require(expiry.ToDelete.Count == 1 && expiring.Entries.Count == 0,
     "An expired vault cookie kept living as a session cookie.");
 
-byte[] vaultKey = RandomNumberGenerator.GetBytes(32);
+using SecureBuffer vaultKey = CookieVaultKey.CreateDataKey();
+Require(vaultKey.IsConcealed && vaultKey.Length == 32, "The cookie vault data key is not concealed in memory.");
+bool concealedReadRefused = false;
+try { _ = vaultKey.ReadOnlySpan.Length; }
+catch (InvalidOperationException) { concealedReadRefused = true; }
+Require(concealedReadRefused, "A concealed key was exposed to managed code.");
 byte[] sealedVault = CookieVaultFile.Seal(vaultKey, [sid, pref], "profile-a");
 Require(CookieVaultFile.Open(vaultKey, sealedVault, "profile-a").SequenceEqual([sid, pref]),
     "The cookie vault did not round-trip.");
@@ -325,14 +335,35 @@ sealedVault[^1] ^= 1;
 Require(rejected(() => CookieVaultFile.Open(vaultKey, sealedVault, "profile-a")),
     "A tampered cookie vault was accepted.");
 
+// Vault files sealed by the earlier .NET AesGcm code must keep opening through the Rust core.
+byte[] legacyKey = RandomNumberGenerator.GetBytes(32);
+byte[] legacyVault = new byte[29 + 6];
+legacyVault[0] = 1;
+RandomNumberGenerator.Fill(legacyVault.AsSpan(1, 12));
+using (AesGcm legacyAes = new(legacyKey, 16))
+{
+    legacyAes.Encrypt(legacyVault.AsSpan(1, 12), "cookie"u8, legacyVault.AsSpan(29), legacyVault.AsSpan(13, 16),
+        "aero-cookie-vault-v1:main"u8);
+}
+Require(CookieVaultFile.OpenBytes(legacyKey, legacyVault, "aero-cookie-vault-v1:main").AsSpan().SequenceEqual("cookie"u8),
+    "A cookie vault written by the previous Aero version no longer opens.");
+using (SecureBuffer roundTripKey = SecureBuffer.From(legacyKey))
+{
+    byte[] resealed = CookieVaultFile.SealBytes(roundTripKey, "cookie"u8, "ctx");
+    using AesGcm legacyAes = new(legacyKey, 16);
+    byte[] plain = new byte[resealed.Length - 29];
+    legacyAes.Decrypt(resealed.AsSpan(1, 12), resealed.AsSpan(29), resealed.AsSpan(13, 16), plain, "ctx"u8);
+    Require(plain.AsSpan().SequenceEqual("cookie"u8), "The Rust vault format drifted from the documented container.");
+}
+
 // App-bound key: frames round-trip, oversized ones are refused before allocation, and a key
 // file in an unknown format fails closed instead of being guessed at.
 using (MemoryStream frame = new())
 {
-    AppBoundKey.WriteFrame(frame, AppBoundKey.OpUnwrap, vaultKey);
+    AppBoundKey.WriteFrame(frame, AppBoundKey.OpUnwrap, legacyKey);
     frame.Position = 0;
     (byte head, byte[] body) = AppBoundKey.ReadFrame(frame);
-    Require(head == AppBoundKey.OpUnwrap && body.SequenceEqual(vaultKey), "An app-bound frame did not round-trip.");
+    Require(head == AppBoundKey.OpUnwrap && body.SequenceEqual(legacyKey), "An app-bound frame did not round-trip.");
 }
 bool oversizedRejected = false;
 try { _ = AppBoundKey.ReadFrame(new MemoryStream([AppBoundKey.OpUnwrap, 0xFF, 0xFF])); }
@@ -431,11 +462,13 @@ using (Process guarded = Process.Start(new ProcessStartInfo("ping.exe", "-n 30 1
     }
 }
 
-Require(ProcessAccessGuard.AddGuardAces("D:(A;;GA;;;SY)", "S-1-5-21-1") ==
-        "D:(D;;0xc2bfa;;;S-1-5-21-1)(A;;RC;;;OW)(A;;GA;;;SY)",
-    "The deny ACE must precede every existing grant.");
-Require(ProcessAccessGuard.AddGuardAces("D:NO_ACCESS_CONTROL", "S-1-5-21-1") is null &&
-        ProcessAccessGuard.AddGuardAces(null, "S-1-5-21-1") is null,
-    "A NULL or missing DACL must not be guarded blindly.");
+// SDDL edge cases (deny ACE order, NULL DACL) are covered by `cargo test` in src/Aero.Security.Native.
+
+// Stealer simulation: the default info-stealer methods against Aero's own components.
+Console.WriteLine("Stealer simulation:");
+StealerSimulation.RunProcessAttacks();
+StealerSimulation.RunConcealedKeyScan();
+StealerSimulation.RunCookieVaultAtRest();
+StealerSimulation.RunWinUiAttacks();
 
 Console.WriteLine("Aero Security Broker smoke tests passed.");

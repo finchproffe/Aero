@@ -55,6 +55,12 @@ internal static partial class BrokerNativeMethods
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetNamedPipeServerSessionId(
+        SafePipeHandle pipe,
+        out uint serverSessionId);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetNamedPipeClientProcessId(
         SafePipeHandle pipe,
         out uint clientProcessId);
@@ -140,9 +146,13 @@ internal static partial class BrokerNativeMethods
         return (int)sessionId;
     }
 
-    public static bool TryGetProcessSessionId(int processId, out int sessionId)
+    /// <summary>
+    /// The session of the process serving a pipe, read from the pipe itself: ProcessIdToSessionId
+    /// on the server would need a handle to it, which a normal user never gets for a SYSTEM service.
+    /// </summary>
+    public static bool TryGetPipeServerSessionId(SafePipeHandle pipe, out int sessionId)
     {
-        bool found = ProcessIdToSessionId((uint)processId, out uint session) && session <= int.MaxValue;
+        bool found = GetNamedPipeServerSessionId(pipe, out uint session) && session <= int.MaxValue;
         sessionId = found ? (int)session : -1;
         return found;
     }

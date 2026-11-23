@@ -166,14 +166,17 @@ foreach (string legacyWindowToken in new[]
     Require(!secureRevealWindow.Contains(legacyWindowToken, StringComparison.Ordinal),
         $"Legacy reveal-window implementation remains: {legacyWindowToken}");
 }
-Require(secureRevealWindow.Contains("new TextBox", StringComparison.Ordinal) &&
-        secureRevealWindow.Contains("IsReadOnly = true", StringComparison.Ordinal) &&
+// A TextBox (or a PasswordBox in visible mode) hands the password to any UI Automation client;
+// the stealer simulation in Aero.Security.Broker.SmokeTests proves the replacement does not.
+Require(!secureRevealWindow.Contains("new TextBox", StringComparison.Ordinal) &&
+        !secureRevealWindow.Contains("new PasswordBox", StringComparison.Ordinal) &&
+        secureRevealWindow.Contains("OnCreateAutomationPeer", StringComparison.Ordinal) &&
+        secureRevealWindow.Contains("GetChildrenCore() => null", StringComparison.Ordinal) &&
         secureRevealWindow.Contains("_passwordField.Text = Encoding.UTF8.GetString", StringComparison.Ordinal),
-    "Broker reveal UI is not the required standard read-only WinUI TextBox.");
+    "Broker reveal UI is not the UI Automation-hidden password field.");
 Require(!secureRevealWindow.Contains("SecurePasswordPresenter", StringComparison.Ordinal) &&
         !secureRevealWindow.Contains("WriteableBitmap", StringComparison.Ordinal) &&
-        !secureRevealWindow.Contains("Border", StringComparison.Ordinal) &&
-        !secureRevealWindow.Contains("TextBlock", StringComparison.Ordinal),
+        !secureRevealWindow.Contains("Border", StringComparison.Ordinal),
     "Custom password presentation UI remains in the Broker window.");
 Require(secureRevealWindow.Contains("SetWindowDisplayAffinity", StringComparison.Ordinal),
     "WinUI reveal window is not excluded from screen capture when supported.");

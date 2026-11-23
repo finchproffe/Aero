@@ -4,7 +4,9 @@
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System.Runtime.InteropServices;
 using System.Text;
 using Windows.Graphics;
@@ -12,8 +14,11 @@ using Windows.Graphics;
 namespace Aero.Security.BrokerHost;
 
 /// <summary>
-/// Broker-owned WinUI 3 window that displays the revealed password in one
-/// standard, read-only text field.
+/// Broker-owned WinUI 3 window that displays the revealed password. Stealers read other apps'
+/// windows through UI Automation, and every stock text control (even PasswordBox in visible
+/// mode) hands its text to UIA, so the password sits in a <see cref="SecretText"/> whose
+/// automation peer hides it. The text cannot be selected or copied, and the window is excluded
+/// from screen capture.
 /// </summary>
 internal sealed class SecureRevealWindow : Window, IDisposable
 {
@@ -26,7 +31,7 @@ internal sealed class SecureRevealWindow : Window, IDisposable
 
     private readonly TaskCompletionSource<bool> _closed = new(
         TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TextBox _passwordField;
+    private readonly SecretText _passwordField = new();
     private readonly IntPtr _aeroOwner;
     private readonly IntPtr _windowHandle;
     private int _disposed;
@@ -36,16 +41,6 @@ internal sealed class SecureRevealWindow : Window, IDisposable
         _ = normalizedOrigin;
         _aeroOwner = aeroOwner;
         Title = "Aero Security Broker";
-
-        _passwordField = new TextBox
-        {
-            IsReadOnly = true,
-            AcceptsReturn = false,
-            TextWrapping = TextWrapping.NoWrap,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center,
-            MinHeight = 40
-        };
 
         Grid root = new()
         {
@@ -103,6 +98,12 @@ internal sealed class SecureRevealWindow : Window, IDisposable
 
         _passwordField.Text = Encoding.UTF8.GetString(passwordUtf8);
     }
+
+    /// <summary>Smoke tests: what the user sees, plus whether screen capture is blocked.</summary>
+    internal bool IsShowing(string password) =>
+        _passwordField.Text == password &&
+        GetWindowDisplayAffinity(_windowHandle, out uint affinity) &&
+        affinity is WdaExcludeFromCapture or WdaMonitor;
 
     public async Task ShowForAsync(
         TimeSpan lifetime,
@@ -281,9 +282,62 @@ internal sealed class SecureRevealWindow : Window, IDisposable
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowDisplayAffinity(IntPtr window, out uint affinity);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr window);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool BringWindowToTop(IntPtr window);
+    /// <summary>The revealed password, visible on screen but not to UI Automation clients.</summary>
+    private sealed partial class SecretText : ContentControl
+    {
+        private const uint SpiGetScreenReader = 0x0046;
+        private readonly TextBlock _text = new()
+        {
+            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            FontSize = 18,
+            IsTextSelectionEnabled = false,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        public SecretText()
+        {
+            Content = _text;
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+            VerticalAlignment = VerticalAlignment.Center;
+            IsTabStop = false;
+        }
+
+        public string Text
+        {
+            get => _text.Text;
+            set => _text.Text = value;
+        }
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new SecretTextPeer(this);
+
+        private sealed partial class SecretTextPeer(SecretText owner) : FrameworkElementAutomationPeer(owner)
+        {
+            // Hiding the TextBlock child keeps its Text (exposed as Name) out of the UIA tree.
+            protected override IList<AutomationPeer>? GetChildrenCore() => null;
+
+            protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+
+            protected override bool IsPasswordCore() => true;
+
+            // Accessibility: a running screen reader still reads the password the user asked to see.
+            protected override string GetNameCore() =>
+                SystemParametersInfo(SpiGetScreenReader, 0, out int running, 0) && running != 0
+                    ? owner.Text
+                    : "Revealed password";
+        }
+
+        [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SystemParametersInfo(uint action, uint param, out int value, uint winIni);
+    }
 }

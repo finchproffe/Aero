@@ -22,7 +22,7 @@ public sealed partial class MainWindow
         public required string VaultPath { get; init; }
         public required string WrappedKeyPath { get; init; }
         public required string Context { get; init; }
-        public byte[]? DataKey { get; set; }
+        public SecureBuffer? DataKey { get; set; } // concealed, Rust-owned memory
         public CookieVaultLedger? Ledger { get; set; }
         public Task<bool>? Load { get; set; }
         public Task<bool>? Unlock { get; set; }
@@ -148,10 +148,10 @@ public sealed partial class MainWindow
     {
         nint window = WinRT.Interop.WindowNative.GetWindowHandle(this);
         bool useHello = _settings.ProtectCookiesWithHello;
+        SecureBuffer? dataKey = null;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(session.VaultPath)!);
-            byte[] dataKey;
             if (File.Exists(session.WrappedKeyPath))
             {
                 byte[] wrapped = await File.ReadAllBytesAsync(session.WrappedKeyPath);
@@ -163,7 +163,7 @@ public sealed partial class MainWindow
             }
             else
             {
-                dataKey = RandomNumberGenerator.GetBytes(32);
+                dataKey = CookieVaultKey.CreateDataKey();
                 await RewrapCookieVaultKeyAsync(session, dataKey);
             }
 
@@ -174,6 +174,7 @@ public sealed partial class MainWindow
                 ? []
                 : CookieVaultFile.Open(dataKey, sealedVault, session.Context));
             session.DataKey = dataKey;
+            dataKey = null;
             return true;
         }
         catch (Exception exception) when (exception is CryptographicException or IOException or
@@ -186,10 +187,14 @@ public sealed partial class MainWindow
                 ShowNoticeToast(Localization.AeroLocalizer.Get("Notice.CookieVaultLocked"), exception.Message));
             return false;
         }
+        finally
+        {
+            dataKey?.Dispose(); // only set when loading failed after the key was unwrapped
+        }
     }
 
     // The data key never changes; only its wrapping follows the Hello setting.
-    private async Task RewrapCookieVaultKeyAsync(CookieVaultSession session, byte[] dataKey)
+    private async Task RewrapCookieVaultKeyAsync(CookieVaultSession session, SecureBuffer dataKey)
     {
         nint window = WinRT.Interop.WindowNative.GetWindowHandle(this);
         bool useHello = _settings.ProtectCookiesWithHello;
@@ -260,11 +265,12 @@ public sealed partial class MainWindow
             }
 
             // The session copies live until Aero closes, so saving right after loses nothing.
-            if (result.Changed)
+            // DataKey is re-read: turning protection off during the await above disposes it.
+            if (result.Changed && session.DataKey is SecureBuffer dataKey)
             {
                 await WriteFileAtomicallyAsync(
                     session.VaultPath,
-                    CookieVaultFile.Seal(session.DataKey, session.Ledger.Entries, session.Context));
+                    CookieVaultFile.Seal(dataKey, session.Ledger.Entries, session.Context));
             }
         }
         catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException)
@@ -286,7 +292,7 @@ public sealed partial class MainWindow
         }
 
         CookieVaultSession session = GetCookieVaultSession();
-        if (session.DataKey is byte[] dataKey)
+        if (session.DataKey is SecureBuffer dataKey)
         {
             if (!CookieVaultEnabled)
             {
@@ -341,11 +347,7 @@ public sealed partial class MainWindow
         TryDeleteFile(session.VaultPath);
         TryDeleteFile(session.VaultPath + ".bak");
         TryDeleteFile(session.WrappedKeyPath);
-        if (session.DataKey is not null)
-        {
-            CryptographicOperations.ZeroMemory(session.DataKey);
-        }
-
+        session.DataKey?.Dispose();
         session.DataKey = null;
         session.Ledger = null;
         session.Load = null;

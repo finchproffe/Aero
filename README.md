@@ -35,7 +35,8 @@ Info-stealers (Lumma, RedLine, Vidar, StealC and their forks) run as the signed-
 | Copy the cookie database and decrypt it as the user | ❌ | ❌ | ✅ | ✅ |
 | Copy saved passwords and decrypt them as the user | ❌ | ❌ | ⚠️³ | ✅ |
 | Relaunch the browser with a debugging port and dump every cookie | — | ❌ | ✅⁴ | ✅ |
-| Read the browser's memory or inject code into it | ❌ | ❌ | ❌⁵ | ⚠️ |
+| Read the browser's memory or inject code into it | ❌ | ❌ | ❌⁵ | ✅⁶ |
+| Read a shown password through UI Automation or a screenshot | ❌ | ❌ | ❌ | ✅ |
 | Malware running as Administrator or SYSTEM | ❌ | ❌ | ❌ | ❌ |
 
 ✅ blocked by default · ⚠️ partly blocked · ❌ not blocked · — not a practical vector
@@ -45,18 +46,20 @@ Info-stealers (Lumma, RedLine, Vidar, StealC and their forks) run as the signed-
 ³ Chrome began its app-bound encryption rollout with cookies; how far it covers passwords depends on the version.<br>
 ⁴ Since Chrome 136 the debugging switches are ignored for the default profile.<br>
 ⁵ Code injection into Chrome is the publicly documented way around its app-bound encryption.<br>
+⁶ For `Aero.exe` and every WebView2 process: memory reads, dumps, injection, debugging and handle theft are refused. A stealer that launches a fresh Aero itself gets that new process, see [below](#what-aero-does-not-protect-against-yet).<br>
 Based on publicly documented defaults; other browsers change between releases, so check current versions before relying on this table.</sub>
 
 ### How Aero does it
 
 | Layer | What it does |
 |---|---|
-| **Cookie vault** | Persistent cookies never stay in WebView2's on-disk Cookies database. Aero turns them into in-memory session cookies and keeps the real copy in an AES-256-GCM vault. |
+| **Cookie vault** | Persistent cookies never stay in WebView2's on-disk Cookies database. Aero turns them into in-memory session cookies and keeps the real copy in an AES-256-GCM vault. The vault key lives encrypted in memory (`CryptProtectMemory`) and is decrypted only for the moment it is used. |
 | **App-bound key** | The vault key is wrapped by `AeroAppBound`, a tiny LocalSystem service shipped in the MSIX. It unwraps the key only for `Aero.exe` from its own package folder. A stealer can copy the files but cannot open them. |
 | **Windows Hello (opt-in)** | Settings → *Protect site sign-ins with Windows Hello* additionally requires your face, fingerprint or PIN on every launch. |
 | **Aero Vault** | Saved passwords sit behind Windows Hello, this PC's TPM and your Windows account at once. See [Aero Vault](#aero-vault) below. |
 | **Launch guard** | Environment variables and registry policies that would start WebView2 with a debugging port, another runtime or another profile are removed or refused before the engine starts. |
-| **Process guard** | Other processes of the user cannot open `Aero.exe` to read or write its memory or start threads in it, and cannot reset that rule without admin rights. Remote DLL loads and legacy injection points are blocked. |
+| **Process guard** | Other processes of the user cannot open `Aero.exe` or any of its WebView2 processes (including the crash handler) to read or write memory, dump them, start threads, attach a debugger or steal their handles, and cannot reset that rule without admin rights. Remote DLL loads and legacy injection points are blocked. |
+| **Rust security core** | Protected memory, vault encryption and the process guard live in `aero_security_native.dll` (`src/Aero.Security.Native`). Secrets never touch the .NET heap: they sit in locked pages between no-access guard pages, are excluded from crash dumps and are wiped on release. |
 
 ```mermaid
 sequenceDiagram
@@ -80,8 +83,8 @@ Aero Vault is Aero's own password manager. It does not use the Chromium password
 |   | |
 |---|---|
 | 🔐 **Three keys, all required** | The vault key opens only with your **Windows Hello** (face, fingerprint or PIN, held by a non-exportable key), only on **this PC** (Node Lock: a key kept in the TPM by the Microsoft Platform Crypto Provider) and only for **your Windows account** (DPAPI). A vault file copied to another machine is noise. |
-| ⏱️ **Never left unlocked** | There is no "unlocked for 15 minutes" state. Every fill or reveal gets its own short-lived key lease that is destroyed right after. Secrets live in locked, unmanaged memory and are zeroed before release. |
-| 🪟 **Reveal outside the browser** | *Show password* runs in a separate one-shot process, the Aero Security Broker: an HMAC-SHA256-authenticated channel, a hardened process with loader monitoring, and a password window hidden from screen capture. The browser process never sees the revealed password. |
+| ⏱️ **Never left unlocked** | There is no "unlocked for 15 minutes" state. Every fill or reveal gets its own short-lived key lease that is destroyed right after. Secrets live in locked memory owned by the Rust core, fenced by guard pages and zeroed before release. |
+| 🪟 **Reveal outside the browser** | *Show password* runs in a separate one-shot process, the Aero Security Broker: an HMAC-SHA256-authenticated channel, a hardened process with loader monitoring, and a password window hidden from screen capture and from UI Automation, with text that cannot be copied. The browser process never sees the revealed password. |
 | 🎯 **Fills only where it belongs** | Autofill reaches the page through a WebView2 shared buffer bound to the exact origin and document. Aero Vault refuses to fill on IP addresses, local hosts, punycode look-alike domains and suspiciously complex domain names. |
 | 🧱 **One store, no duplicates** | WebView2's built-in password saving is off, so there is no second copy in the `Login Data` file that stealers grab. The optional kernel driver can additionally shield the broker. |
 
@@ -101,8 +104,8 @@ Every source file of Aero Vault starts with the notice **"Vault is Powered by Ae
 
 ### What Aero does not protect against yet
 
-- **Injection into a running Aero.** Like Chrome's app-bound encryption, this layer stops file theft, not code that is already inside the browser.
-- **WebView2's own processes.** While Aero runs, cookies live in memory in the WebView2 network process, which other processes of the user can still read. Chromium crashes if those processes are locked down from user mode.
+- **A stealer that starts Aero itself.** Whoever creates a process gets full access to it, so malware can launch its own Aero and inject into it. Like Chrome's app-bound encryption, Aero stops file theft and attacks on the Aero you are running, not code that becomes part of a new Aero.
+- **Handle theft from Aero.exe.** WebView2 hands shared buffers to `Aero.exe` by duplicating handles into it, so `Aero.exe` cannot refuse `DUP_HANDLE`. A stealer that knows that trick can still reach its memory. WebView2's own processes refuse it.
 - **Administrator-level malware.** Nothing in user mode survives it. The optional kernel driver (`Aero.Security.Driver`) currently protects only the password broker.
 - **Development builds.** Without the MSIX there is no key service, so the cookie vault stays off unless Windows Hello protection is turned on.
 
@@ -122,17 +125,38 @@ Aero has no sync server and no account. Pick a folder that your own cloud client
 
 Not synced yet: history, open tabs and bookmark order. There is no phone app.
 
+## Stealer simulation
+
+`tests/Aero.Security.Broker.SmokeTests` plays an info-stealer running as you, using the default methods real stealers use, but only against Aero components with canary data it plants itself, in temporary profiles and processes it starts. Nothing is decrypted for real or sent anywhere. Each attack first runs against an unprotected control, so a pass cannot come from a probe that does not work.
+
+| Attack | Result |
+|---|---|
+| Open Aero for memory reads, `MiniDumpWriteDump`, injection, suspend, debugger | refused |
+| Scan process memory for the cookie vault key | not found: concealed |
+| Copy the cookie and password vault files, grep them, unprotect them with the user's DPAPI | nothing readable |
+| Ask the `AeroAppBound` service to unwrap a stolen cookie key | refused: not `Aero.exe` |
+| Scrape cookies from WebView2 memory; open WebView2 and the crash handler for reads, injection or handle theft | cookie found in the unprotected control; refused under Aero's guard, while browsing, scripts, cookies and shared buffers keep working |
+| Copy WebView2's `Cookies` database | vaulted cookies are not on disk |
+| Reveal a saved password through the Security Broker with a simulated Windows Hello | shown to the user after approval, refused after cancel |
+| Read the Broker's password window through UI Automation; screenshot it | not exposed; excluded from capture |
+
+```powershell
+dotnet run --project tests/Aero.Security.Broker.SmokeTests -p:Platform=x64
+```
+
+The simulated Windows Hello is a test-only class the vault accepts through an internal constructor; Aero itself never creates one, and it never touches the TPM.
+
 ## Build
 
-1. Install Visual Studio 2026 with the Windows application development workload and the Windows App SDK / WinUI tools.
-2. Install the .NET 10 SDK.
+1. Install Visual Studio 2026 with the Windows application development workload and the Windows App SDK / WinUI tools (plus the ARM64 C++ build tools for ARM64 builds).
+2. Install the .NET 10 SDK and [Rust](https://rustup.rs). `Aero.Security` builds its native core with `cargo`; for ARM64 also run `rustup target add aarch64-pc-windows-msvc`.
 3. Open `Aero.sln`, select `x64` and run `Aero.App`.
 
 ```powershell
 dotnet build Aero.sln -c Debug -p:Platform=x64
 ```
 
-Smoke tests are console projects: `dotnet run --project tests/<name> -p:Platform=x64`. The signed MSIX and installer are built with `BUILD_AERO_MSIX.cmd` and `BUILD_AERO_INSTALLER.cmd`.
+Smoke tests are console projects: `dotnet run --project tests/<name> -p:Platform=x64`. The Rust core has its own tests: `cargo test` in `src/Aero.Security.Native`. The signed MSIX and installer are built with `BUILD_AERO_MSIX.cmd` and `BUILD_AERO_INSTALLER.cmd`.
 
 ## Repository map
 
@@ -147,6 +171,7 @@ src/Aero.Storage            Atomic settings, history, bookmarks and sessions
 src/Aero.Downloads          Download naming, paths and deduplication
 src/Aero.Extensions         Extension catalog and permission risk
 src/Aero.Security           Vaults, process guard, app-bound key client
+src/Aero.Security.Native    Rust core: protected memory, vault encryption, process guard
 src/Aero.Security.Broker    Hardened process that reveals passwords
 src/Aero.Security.AppBound  LocalSystem key service for the cookie vault
 src/Aero.Security.Driver    Optional kernel driver for the broker

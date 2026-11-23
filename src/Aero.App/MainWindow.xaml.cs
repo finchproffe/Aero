@@ -914,13 +914,36 @@ public sealed partial class MainWindow : Window
         {
             if (!SharedEnvironmentTasks.TryGetValue(normalizedFolder, out Task<CoreWebView2Environment>? task))
             {
-                task = WebViewEnvironmentFactory.CreateAsync(
-                    normalizedFolder,
-                    enableBrowserExtensions: true);
+                task = CreateGuardedEnvironmentAsync(normalizedFolder);
                 SharedEnvironmentTasks[normalizedFolder] = task;
             }
 
             return task;
+        }
+    }
+
+    private static async Task<CoreWebView2Environment> CreateGuardedEnvironmentAsync(string userDataFolder)
+    {
+        CoreWebView2Environment environment = await WebViewEnvironmentFactory.CreateAsync(
+            userDataFolder,
+            enableBrowserExtensions: true);
+        // Live cookies and typed passwords sit in the WebView2 processes: keep same-user stealers
+        // from reading or injecting into them, including processes WebView2 starts later.
+        environment.ProcessInfosChanged += (sender, _) => GuardWebViewProcesses(sender);
+        GuardWebViewProcesses(environment);
+        return environment;
+    }
+
+    private static void GuardWebViewProcesses(CoreWebView2Environment environment)
+    {
+        try
+        {
+            _ = Aero.App.Security.ProcessAccessGuard.GuardWebViewProcesses(
+                environment.GetProcessInfos().Select(info => info.ProcessId));
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // A restarting WebView runtime may briefly reject process queries; the next change retries.
         }
     }
 

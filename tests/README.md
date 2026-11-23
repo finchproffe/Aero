@@ -9,7 +9,7 @@ Current projects:
 - `Aero.WebView.SmokeTests`: one-time event binding, rollback and detach;
 - `Aero.Storage.SmokeTests`: atomic writes, snapshots, session persistence and recovery;
 - `Aero.Shield.SmokeTests`: fast-lane blocking, strict mode and anti-bot exceptions;
-- `Aero.Security.Broker.SmokeTests`: Broker hardening primitives;
+- `Aero.Security.Broker.SmokeTests`: Broker hardening primitives, the Rust security core, and the stealer simulation (memory, files, DPAPI, WebView2, UI Automation, Broker reveal with simulated Windows Hello);
 - `Aero.Downloads.SmokeTests`: deduplication, safe filenames and path policy;
 - `Aero.Extensions.SmokeTests`: manifests, registry and permission classification;
 - `Aero.VaultBoundary.SmokeTests`: password JSON/Base64/script, backup, Reveal UI, CSV temp and WER exclusion regressions.

@@ -10,10 +10,17 @@
     <PlatformTarget Condition="'$(Platform)' == 'x64'">x64</PlatformTarget>
     <PlatformTarget Condition="'$(Platform)' == 'ARM64'">ARM64</PlatformTarget>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- System.Windows.Automation: the stealer simulation reads windows the way UIA stealers do. -->
+    <UseWPF>true</UseWPF>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsAppSdkAutoInitialize>false</WindowsAppSdkAutoInitialize>
     <WindowsAppSdkUndockedRegFreeWinRTInitialize>false</WindowsAppSdkUndockedRegFreeWinRTInitialize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWPF drops this implicit using. -->
+    <Using Include="System.IO" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
