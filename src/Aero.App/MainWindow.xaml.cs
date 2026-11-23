@@ -85,7 +85,7 @@ public sealed partial class MainWindow : Window
 
     private const string NewTabPageTemplate = """
 <!doctype html>
-<html lang="__HOME_LANG__" class="__HOME_MOTION__">
+<html lang="__HOME_LANG__" class="__HOME_MOTION__" data-scheme="__COLOR_SCHEME__">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,7 +149,7 @@ public sealed partial class MainWindow : Window
             position: relative;
             z-index: 1;
             align-self: start;
-            width: min(640px, calc(100vw - 48px));
+            width: min(980px, calc(100vw - 48px));
             margin: 0 auto;
             padding: max(72px, 24vh) 0 64px;
         }
@@ -391,6 +391,83 @@ public sealed partial class MainWindow : Window
         .shortcut-label { display:block; max-width:100%; }
         button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid __FOCUS_BORDER__; outline-offset:4px; }
         .shortcut:focus-within { background:__SHORTCUT_HOVER__; }
+        /* Aero Home. Colours follow the interface style's roles when it defines them. */
+        :root {
+            --h-text: var(--text, __TEXT__);
+            --h-muted: var(--muted, __MUTED__);
+            --h-accent: var(--accent, __BUTTON_BG__);
+            --h-hover: var(--md-high, var(--g-control, __SHORTCUT_HOVER__));
+            --h-panel: var(--md-low, var(--g-group, __SURFACE__));
+            --h-radius: 14px;
+            --h-ease: cubic-bezier(.2, .8, .2, 1);
+        }
+        [hidden] { display: none !important; }
+        main { padding-top: max(56px, 13vh); }
+        .hero, #search-form, #quick-links { width: min(640px, 100%); margin-left: auto; margin-right: auto; }
+        .hero { margin-bottom: 30px; text-align: center; }
+        .clock { display: block; color: var(--h-text); font-size: clamp(68px, 11vw, 116px); font-weight: 300; line-height: 1; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+        .clock small { margin-left: .2em; color: var(--h-muted); font-size: .26em; font-weight: 500; letter-spacing: 0; }
+        .date { margin: 14px 0 0; color: var(--h-muted); font-size: 15px; }
+        .date::first-letter { text-transform: uppercase; }
+        .hero .subtitle { margin: 12px 0 0; }
+        #quick-links { justify-content: center; margin-top: 24px; }
+
+        /* The sky follows the real time of day: night indigo, dawn peach, day blue, sunset amber. */
+        .sky { display: __HOME_SKY__; position: fixed; z-index: 0; inset: 0 0 auto; height: 80vh; pointer-events: none; opacity: var(--sky-o, .7); background: radial-gradient(46% 72% at var(--sun, 50%) -8%, var(--sky-a, transparent), transparent 72%), radial-gradient(62% 64% at calc(100% - var(--sun, 50%)) -14%, var(--sky-b, transparent), transparent 70%); transition: opacity 1.2s ease; animation: sky-in 1.1s ease-out both; }
+        html[data-scheme="dark"] .sky { --sky-o: .5; }
+
+        .below { margin-top: 60px; }
+        .section-head { display: flex; align-items: baseline; gap: 12px; margin: 0 4px 12px; }
+        .below h2 { margin: 0; color: var(--h-text); font-size: 15px; font-weight: 650; }
+        .meta { color: var(--h-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+        .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 106px; gap: 10px; margin: 0; padding: 0; list-style: none; }
+        .cards > li:first-child { grid-column: span 2; grid-row: span 2; }
+        .card { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px 16px; border-radius: var(--h-radius); background: var(--h-panel); color: inherit; text-decoration: none; transition: transform 240ms var(--h-ease), background-color 160ms ease; }
+        .card:hover { background: var(--h-hover); transform: translateY(-3px); }
+        .card:active { transform: scale(.98); transition-duration: 90ms; }
+        .card-top { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--h-muted); font-size: 12px; white-space: nowrap; }
+        .card-host { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .card-time { font-variant-numeric: tabular-nums; }
+        .card-title { display: -webkit-box; overflow: hidden; color: var(--h-text); font-size: 14px; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .cards > li:first-child .card { padding: 22px 24px; background: hsl(var(--hue) 75% 58% / .14); }
+        html[data-scheme="dark"] .cards > li:first-child .card { background: hsl(var(--hue) 55% 62% / .15); }
+        .cards > li:first-child .card:hover { background: hsl(var(--hue) 75% 58% / .22); }
+        .cards > li:first-child .mono { width: 52px; height: 52px; border-radius: 15px; font-size: 22px; }
+        .cards > li:first-child .card-top { align-items: flex-start; font-size: 13px; }
+        .cards > li:first-child .card-host { align-self: center; }
+        .cards > li:first-child .card-time { align-self: center; }
+        .cards > li:first-child .card-title { margin-top: auto; font-size: 21px; font-weight: 550; line-height: 1.28; letter-spacing: -.01em; -webkit-line-clamp: 3; }
+
+        .lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 36px; margin-top: 36px; }
+        .lists ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); column-gap: 16px; margin: 0 -8px; padding: 0; list-style: none; }
+        .row { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 6px 8px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: background-color 140ms ease; }
+        .row:hover, .row:focus-visible { background: var(--h-hover); }
+        .row:hover .mono { transform: scale(1.08); }
+        .mono { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 8px; background: hsl(var(--hue) 60% 50% / .16); color: hsl(var(--hue) 55% 34%); font-size: 13px; font-weight: 700; transition: transform 260ms var(--h-ease); }
+        html[data-scheme="dark"] .mono { background: hsl(var(--hue) 50% 58% / .2); color: hsl(var(--hue) 70% 76%); }
+        .mono img { width: 18px; height: 18px; object-fit: contain; }
+        .mono.has-icon { background: var(--h-hover); }
+        .cards > li:first-child .mono img { width: 30px; height: 30px; }
+        .row-main { display: grid; min-width: 0; }
+        .row-title, .row-host { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .row-title { color: var(--h-text); font-size: 14px; }
+        .row-host { color: var(--h-muted); font-size: 12px; }
+        .empty { margin: 4px 4px 12px; color: var(--h-muted); font-size: 13px; }
+        .guard { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 14px; margin: 44px auto 0; color: var(--h-muted); font-size: 13px; text-align: center; }
+        .guard p { max-width: 76ch; margin: 0; }
+        .guard button { padding: 4px 0; border: 0; background: none; color: var(--h-text); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+        /* One opening sequence: time, then search, then the links pop in, then the rest. */
+        @keyframes sky-in { from { opacity: 0; } }
+        @keyframes enter { from { opacity: 0; transform: translateY(16px); } }
+        @keyframes pop { from { opacity: 0; transform: scale(.82); } }
+        .clock { animation: enter 640ms var(--h-ease) both; }
+        .date { animation: enter 640ms 60ms var(--h-ease) both; }
+        #search-form { animation: enter 600ms 120ms var(--h-ease) both; }
+        #quick-links > * { animation: pop 520ms calc(190ms + var(--n, 0) * 38ms) cubic-bezier(.2, 1.25, .4, 1) both; }
+        #quick-links.settled > * { animation: none; }
+        .below > * { animation: enter 600ms calc(280ms + var(--n, 0) * 80ms) var(--h-ease) both; }
+        @media(max-width: 760px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .below { margin-top: 44px; } }
         html.reduce-motion *,html.reduce-motion *::before,html.reduce-motion *::after { transition:none!important;animation:none!important;scroll-behavior:auto!important; }
         @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important;animation:none!important;scroll-behavior:auto!important; } }
         @media(max-height:520px) { main { padding-top:32px; } }
@@ -399,9 +476,14 @@ public sealed partial class MainWindow : Window
     </style>
 </head>
 <body>
+    <div class="sky" id="sky" aria-hidden="true"></div>
     <main>
         <h1 class="sr-only">Aero</h1>
-        <p class="subtitle">__SUBTITLE__</p>
+        <header class="hero">
+            <time class="clock" id="clock"></time>
+            <p class="date" id="today-date"></p>
+            <p class="subtitle">__SUBTITLE__</p>
+        </header>
 
         <form id="search-form">
             <input id="aero-search-query" aria-label="Search the web or enter an address" autocomplete="off" autofocus placeholder="Search the web or enter a question">
@@ -409,6 +491,18 @@ public sealed partial class MainWindow : Window
         </form>
 
         <nav id="quick-links" aria-label="Quick links"></nav>
+
+        <div class="below" id="below" hidden>
+            <section aria-labelledby="recent-title">
+                <div class="section-head"><h2 id="recent-title"></h2><span class="meta" id="day-count"></span></div>
+                <ol class="cards" id="recent"></ol>
+            </section>
+            <div class="lists">
+                <section aria-labelledby="bookmarks-title"><div class="section-head"><h2 id="bookmarks-title"></h2></div><ul id="bookmarks"></ul></section>
+                <section aria-labelledby="workspaces-title" id="workspaces-column"><div class="section-head"><h2 id="workspaces-title"></h2></div><ul id="workspaces"></ul></section>
+            </div>
+            <footer class="guard" id="guard" hidden><p id="guard-text"></p><button type="button" id="guard-settings"></button></footer>
+        </div>
     </main>
 
     <dialog id="link-dialog" aria-labelledby="dialog-title">
@@ -635,6 +729,187 @@ public sealed partial class MainWindow : Window
             for (const attribute of ['placeholder','aria-label']) if (el.hasAttribute(attribute)) el.setAttribute(attribute, tr(el.getAttribute(attribute)));
         });
         render();
+
+        // ---- Aero Home: clock, sky, recent pages, bookmarks, workspaces, protection.
+        const activity = __HOME_ACTIVITY_JSON__;
+        const lang = document.documentElement.lang || undefined;
+        const fill = (text, value) => tr(text).replace('{n}', value);
+        const dateFormat = new Intl.DateTimeFormat(lang, { weekday: 'long', day: 'numeric', month: 'long' });
+        const timeFormat = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: '2-digit' });
+        const relative = new Intl.RelativeTimeFormat(lang, { numeric: 'auto', style: 'short' });
+
+        // [hour, main glow, second glow]; colours in between are mixed.
+        const skyStops = [
+            [0, '#33418f', '#5b3f8f'], [5, '#5f5fae', '#d98ba0'], [7, '#ffad85', '#f6cf86'],
+            [10, '#86c3ff', '#b4dfff'], [15, '#7cb9ff', '#a8d4ff'], [17.5, '#ffb877', '#ff8f87'],
+            [19.5, '#b874b4', '#6670d0'], [22, '#33418f', '#5b3f8f'], [24, '#33418f', '#5b3f8f']];
+
+        function mixColor(from, to, amount) {
+            const channel = (hex, index) => parseInt(hex.slice(1 + index * 2, 3 + index * 2), 16);
+            return 'rgb(' + [0, 1, 2].map(index =>
+                Math.round(channel(from, index) + (channel(to, index) - channel(from, index)) * amount)).join(' ') + ')';
+        }
+
+        function paintSky(now) {
+            const hour = now.getHours() + now.getMinutes() / 60;
+            const next = skyStops.findIndex(stop => stop[0] > hour);
+            const [fromHour, fromA, fromB] = skyStops[next - 1];
+            const [toHour, toA, toB] = skyStops[next];
+            const amount = (hour - fromHour) / (toHour - fromHour);
+            const style = document.documentElement.style;
+            style.setProperty('--sky-a', mixColor(fromA, toA, amount));
+            style.setProperty('--sky-b', mixColor(fromB, toB, amount));
+            style.setProperty('--sun', (12 + hour / 24 * 76).toFixed(1) + '%');
+        }
+
+        function paintClock(now) {
+            const parts = timeFormat.formatToParts(now);
+            const period = parts.find(part => part.type === 'dayPeriod');
+            const clock = document.getElementById('clock');
+            clock.replaceChildren(parts.filter(part => part.type !== 'dayPeriod').map(part => part.value).join('').trim());
+            if (period) clock.append(element('small', '', period.value));
+            clock.dateTime = now.toISOString();
+            document.getElementById('today-date').textContent = dateFormat.format(now);
+        }
+
+        function hostOf(url) {
+            try { return new URL(url).hostname.replace(/^www\./, ''); }
+            catch { return ''; }
+        }
+
+        function hueOf(text) {
+            let hue = 0;
+            for (const character of text) hue = (hue * 31 + character.codePointAt(0)) % 360;
+            return hue;
+        }
+
+        function element(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
+        // The site's icon, found like the quick links' icons: a saved icon, the site's
+        // favicon, then the icon service. The coloured letter stays until one loads.
+        function monogram(name, image, url) {
+            const tile = element('span', 'mono');
+            tile.setAttribute('aria-hidden', 'true');
+            tile.style.setProperty('--hue', hueOf(name || '?'));
+            tile.textContent = (name || '?').charAt(0).toUpperCase();
+            const sources = [image && /^data:image\//i.test(image) ? image : '', url ? fallbackIcon(url) : '', url ? serviceIcon(url) : ''].filter(Boolean);
+            const tryNext = () => {
+                const source = sources.shift();
+                if (!source) return;
+                const picture = new Image();
+                picture.alt = '';
+                picture.onload = () => {
+                    // A 1x1 placeholder is what some services return for "no icon".
+                    if (picture.naturalWidth < 8) { tryNext(); return; }
+                    tile.classList.add('has-icon');
+                    tile.replaceChildren(picture);
+                };
+                picture.onerror = tryNext;
+                picture.src = source;
+            };
+            tryNext();
+            return tile;
+        }
+
+        function ago(at) {
+            const minutes = Math.round((at - Date.now()) / 60000);
+            if (minutes > -60) return relative.format(minutes, 'minute');
+            const hours = Math.round(minutes / 60);
+            return hours > -24 ? relative.format(hours, 'hour') : relative.format(Math.round(hours / 24), 'day');
+        }
+
+        function listItem(child) {
+            const item = element('li');
+            item.append(child);
+            return item;
+        }
+
+        function pageCard(page) {
+            const host = hostOf(page.u);
+            const link = element('a', 'card');
+            link.href = page.u;
+            link.title = page.u;
+            link.style.setProperty('--hue', hueOf(host));
+            const top = element('span', 'card-top');
+            top.append(monogram(host, '', page.u), element('span', 'card-host', host), element('time', 'card-time', ago(page.at)));
+            link.append(top, element('span', 'card-title', page.t || host));
+            return listItem(link);
+        }
+
+        function rowContent(row, tileName, image, title, subtitle, url) {
+            const text = element('span', 'row-main');
+            text.append(element('span', 'row-title', title), element('span', 'row-host', subtitle));
+            row.append(monogram(tileName, image, url), text);
+            return listItem(row);
+        }
+
+        function bookmarkRow(bookmark) {
+            const host = hostOf(bookmark.u);
+            const link = element('a', 'row');
+            link.href = bookmark.u;
+            link.title = bookmark.u;
+            return rowContent(link, host, bookmark.i, bookmark.t || host, host, bookmark.u);
+        }
+
+        function workspaceRow(workspace) {
+            const button = element('button', 'row');
+            button.type = 'button';
+            button.addEventListener('click', () => post({ type: 'aero-home-workspace', id: workspace.id }));
+            return rowContent(button, workspace.name, '', workspace.name, fill('Tabs: {n}', workspace.tabs));
+        }
+
+        function fillList(id, items, emptyText, make) {
+            const list = document.getElementById(id);
+            if (items.length) items.forEach(item => list.append(make(item)));
+            else list.replaceWith(element('p', 'empty', tr(emptyText)));
+        }
+
+        function tick() {
+            const now = new Date();
+            paintClock(now);
+            paintSky(now);
+        }
+
+        if (activity) {
+            for (const [id, text] of [['recent-title', 'Continue'], ['bookmarks-title', 'Bookmarks'], ['workspaces-title', 'Workspaces']]) {
+                document.getElementById(id).textContent = tr(text);
+            }
+            if (activity.todayCount) {
+                document.getElementById('day-count').textContent = fill('Pages opened today: {n}', activity.todayCount.toLocaleString(lang));
+            }
+
+            fillList('recent', activity.recent, 'Recently opened pages will show up here.', pageCard);
+            fillList('bookmarks', activity.bookmarks, 'Pages you bookmark will show up here.', bookmarkRow);
+            if (activity.workspaces.length) fillList('workspaces', activity.workspaces, '', workspaceRow);
+            else document.getElementById('workspaces-column').remove();
+
+            const guard = activity.guard;
+            const facts = [fill('Requests blocked in this window: {n}.', Number(guard.blocked).toLocaleString(lang))];
+            facts.push(tr(guard.vault === 'hello' ? 'Cookies unlock with Windows Hello.'
+                : guard.vault === 'on' ? 'Cookies are kept in the protected vault.'
+                : 'The cookie vault is off in this build.'));
+            if (guard.memory) facts.push(tr("Other programs can't read Aero's memory."));
+            document.getElementById('guard-text').textContent = facts.join(' ');
+            const settingsButton = document.getElementById('guard-settings');
+            settingsButton.textContent = tr('Security settings');
+            settingsButton.addEventListener('click', () => post({ type: 'aero-home-security' }));
+            document.getElementById('guard').hidden = false;
+
+            const below = document.getElementById('below');
+            [...below.children].forEach((part, index) => part.style.setProperty('--n', index));
+            below.hidden = false;
+        }
+
+        [...linksHost.children].forEach((link, index) => link.style.setProperty('--n', index));
+        // Links pop in once; re-renders after a reorder or an edit stay still.
+        setTimeout(() => linksHost.classList.add('settled'), 1200);
+        tick();
+        setInterval(tick, 10000);
     </script>
 </body>
 </html>
@@ -878,6 +1153,7 @@ public sealed partial class MainWindow : Window
 
             // Otherwise WinUI parks keyboard focus (and its focus ring) on the first title-bar button.
             ActiveTab?.Browser.Focus(FocusState.Programmatic);
+            DismissFirstRunOverlay();
 
             await RunPendingFirstRunActionsAsync();
 
@@ -887,6 +1163,7 @@ public sealed partial class MainWindow : Window
         catch (Exception exception)
         {
             _startupTransfer?.Completion.TrySetException(exception);
+            DismissFirstRunOverlay();
             await ShowErrorDialogAsync("Aero could not start WebView2", exception.Message);
         }
     }
@@ -1942,6 +2219,7 @@ public sealed partial class MainWindow : Window
         }
 
         bool tabChanged = !ReferenceEquals(_activeTab, state);
+        BrowserTabState? outgoing = tabChanged ? _activeTab : null;
         _activeTab = state;
         if (tabChanged)
         {
@@ -1970,6 +2248,10 @@ public sealed partial class MainWindow : Window
             ResumeTabIfNeeded(state);
             StartDeferredNavigationIfNeeded(state);
             UpdateVisibleBrowser();
+            if (outgoing is not null)
+            {
+                CrossfadeTabContent(outgoing, state);
+            }
         }
         UpdateActiveChrome();
         RefreshPasswordVaultForActiveTab();
@@ -3389,7 +3671,7 @@ public sealed partial class MainWindow : Window
         if (state is null)
         {
             AddressBox.Text = string.Empty;
-            PageProgress.Visibility = Visibility.Collapsed;
+            ShowPageProgress(false);
             BackButton.IsEnabled = false;
             ForwardButton.IsEnabled = false;
             ReloadButton.IsEnabled = false;
@@ -3410,7 +3692,7 @@ public sealed partial class MainWindow : Window
                 : FormatAddressForDisplay(state.CurrentUri ?? state.PendingUri));
         }
 
-        PageProgress.Visibility = state.IsLoading ? Visibility.Visible : Visibility.Collapsed;
+        ShowPageProgress(state.IsLoading);
         ReloadIcon.Glyph = state.IsLoading ? "\uE711" : "\uE72C";
         ToolTipService.SetToolTip(ReloadButton, state.IsLoading ? "Stop" : "Reload (Ctrl+R)");
         ReloadButton.IsEnabled = true;
@@ -5610,6 +5892,7 @@ public sealed partial class MainWindow : Window
             .Replace("__HOME_BACKGROUND_BLUR__", Math.Clamp(_settings.HomeBackgroundBlur, 0, 24).ToString(CultureInfo.InvariantCulture))
             .Replace("__HOME_BACKGROUND_SCALE__", _settings.HomeBackgroundBlur > 0 ? "1.06" : "1")
             .Replace("__HOME_BACKGROUND_OVERLAY__", BuildHomeBackgroundOverlay(isDark))
+            .Replace("__HOME_SKY__", hasCustomBackground ? "none" : "block")
             .Replace("__SHORTCUT_DISPLAY__", quickLinkDisplay)
             .Replace("__QUICK_LINKS_JSON__", quickLinksJson)
             .Replace(
@@ -5623,6 +5906,9 @@ public sealed partial class MainWindow : Window
         {
             html = html.Replace(token, value);
         }
+
+        // After the colour tokens, so a page title that happens to contain one stays intact.
+        html = html.Replace("__HOME_ACTIVITY_JSON__", BuildHomeActivityJson(), StringComparison.Ordinal);
 
         // Last, so the large font payload is not rescanned by every token replacement above.
         return InjectStylePageCss(html.Replace(AeroFontFaceToken, GetAeroFontFaceCss(), StringComparison.Ordinal), "home");

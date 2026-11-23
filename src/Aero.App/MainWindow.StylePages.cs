@@ -80,18 +80,19 @@ aside{scrollbar-width:none}html{scrollbar-width:thin;scrollbar-color:var(--md-ou
 
         if (page == "home")
         {
+            // The home page's own sky replaces the old primary-container glow.
             string background = defaultHomeBackground
-                ? $"body::before{{background:{Css(m.Surface)}}}body::after{{background:radial-gradient(900px 520px at 50% 0%,{Css(m.PrimaryContainer)}55,transparent 70%)}}"
+                ? $"body::before{{background:{Css(m.Surface)}}}body::after{{background:none}}"
                 : string.Empty;
             return fonts + roles + background + """
-main{padding-top:max(88px,22vh)}
 .subtitle{font-size:14px;color:var(--muted)}
+.clock{font-weight:350;font-variation-settings:"ROND" 100}
 form{height:64px;gap:16px;padding:0 10px 0 26px;border:0;border-radius:32px;background:var(--md-high);transition:background-color .2s,border-radius .4s var(--spring)}
 form:hover{border-color:transparent;background:var(--md-highest)}
 form:focus-within{border-radius:20px;background:var(--md-highest);box-shadow:inset 0 0 0 2px var(--accent)}
 #aero-search-query{font-size:18px;color:var(--text)}
 #aero-search-query::placeholder{color:var(--muted)}
-#quick-links{gap:10px;margin:36px 0 0;justify-content:center}
+#quick-links{gap:10px;margin-top:30px}
 .shortcut{width:108px;height:116px;padding:14px 8px 10px;border-radius:28px;transition:background-color .2s,border-radius .45s var(--spring)}
 .shortcut:hover{background:var(--md-high);border-radius:18px}
 .shortcut-icon{width:60px;height:60px;border-radius:20px;background:var(--md-pc);color:var(--md-onpc);font-size:22px;font-weight:600;transition:border-radius .45s var(--spring),transform .45s var(--spring)}
@@ -108,6 +109,17 @@ dialog{border:0;border-radius:28px;background:var(--md-high);color:var(--text)}
 .dialog-actions button{min-height:40px;padding:0 22px;border:0;border-radius:20px;font-weight:600}
 .dialog-actions .primary{background:var(--accent);color:var(--on-accent)}
 .home-toast{border:0;border-radius:16px;background:var(--md-inverse);color:var(--md-oninverse)}
+:root{--h-radius:24px}
+.below h2{font-size:16px;font-weight:600}
+.card{transition:transform .45s var(--spring),border-radius .45s var(--spring),background-color .2s}
+.card:hover{border-radius:16px}
+.cards>li:first-child .card{border-radius:32px}
+.cards>li:first-child .card:hover{border-radius:24px}
+.cards>li:first-child .mono{border-radius:50%}
+.row{border-radius:20px}
+.mono{border-radius:10px;transition:transform .45s var(--spring),border-radius .45s var(--spring)}
+.row:hover .mono{border-radius:50%}
+.guard button{color:var(--accent)}
 """;
         }
 
@@ -178,14 +190,15 @@ html,html[data-theme],body{background:transparent}
         {
             string background = defaultHomeBackground ? "body::before,body::after{background:none}" : string.Empty;
             return fonts + roles + background + """
-main{padding-top:max(96px,24vh)}
 .subtitle{color:var(--muted)}
+.clock{font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;font-weight:300}
+.sky{--sky-o:.4}
 form{height:40px;gap:10px;padding:0 6px 0 14px;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group);transition:background-color .15s}
 form:hover{border-color:var(--g-edge);background:var(--g-control)}
 form:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
 #aero-search-query{font-size:15px;color:var(--text)}
 #aero-search-query::placeholder{color:var(--muted)}
-#quick-links{gap:6px;margin:28px 0 0;justify-content:center}
+#quick-links{gap:6px;margin-top:26px}
 .shortcut{width:88px;height:96px;padding:10px 4px 6px;border-radius:8px}
 .shortcut:hover{background:var(--g-control)}
 .shortcut-icon{width:48px;height:48px;border:1px solid var(--g-edge);border-radius:8px;background:var(--g-group);box-shadow:inset 0 1px 0 var(--g-rim);color:var(--text);font-size:18px}
@@ -198,6 +211,11 @@ dialog{border:1px solid var(--g-edge);border-radius:8px;background:var(--g-panel
 .dialog-actions button{min-height:28px;padding:0 14px;border:0;border-radius:4px;background:var(--g-control);color:var(--text);font-weight:500}
 .dialog-actions .primary{background:var(--accent);color:#fff}
 .home-toast{border:1px solid var(--g-edge);border-radius:8px;background:var(--g-panel);backdrop-filter:blur(30px);color:var(--text)}
+:root{--h-radius:8px}
+.card{border:1px solid var(--g-edge)}
+.cards>li:first-child .mono{border-radius:8px}
+.row{border-radius:4px}
+.mono{border-radius:4px}
 """;
         }
 

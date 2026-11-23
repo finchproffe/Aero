@@ -1150,11 +1150,14 @@ public sealed partial class MainWindow
 
     private async void OpenWorkspaceButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: WorkspaceEntry workspace })
+        if (sender is Button { Tag: WorkspaceEntry workspace })
         {
-            return;
+            await OpenWorkspaceAsync(workspace);
         }
+    }
 
+    private async Task OpenWorkspaceAsync(WorkspaceEntry workspace)
+    {
         List<BrowserTabState> opened = [];
         int position = 0;
 

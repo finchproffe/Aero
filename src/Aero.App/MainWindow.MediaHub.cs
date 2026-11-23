@@ -169,6 +169,27 @@ public sealed partial class MainWindow
                 return;
             }
 
+            if (string.Equals(messageType, "aero-home-workspace", StringComparison.Ordinal) &&
+                state.IsStartPage)
+            {
+                string workspaceId = ReadString(root, "id");
+                RootGrid.DispatcherQueue.TryEnqueue(async () =>
+                {
+                    if (_dataStore.Library.Workspaces.FirstOrDefault(w => w.Id == workspaceId) is Aero.App.Data.WorkspaceEntry workspace)
+                    {
+                        await OpenWorkspaceAsync(workspace);
+                    }
+                });
+                return;
+            }
+
+            if (string.Equals(messageType, "aero-home-security", StringComparison.Ordinal) &&
+                state.IsStartPage)
+            {
+                RootGrid.DispatcherQueue.TryEnqueue(() => TryNavigateInternalPage(state, SettingsAddress));
+                return;
+            }
+
             if (string.Equals(messageType, "aero-store-install", StringComparison.Ordinal))
             {
                 string extensionId = ReadString(root, "id");

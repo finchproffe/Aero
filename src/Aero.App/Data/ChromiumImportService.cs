@@ -4,7 +4,6 @@ using Aero.Extensions;
 using Microsoft.Data.Sqlite;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Aero.App.Data;
 
@@ -56,7 +55,8 @@ internal sealed record ChromiumImportResult(
 
 internal static partial class ChromiumImportService
 {
-    private static readonly Regex SessionUrlRegex = SessionUrlPattern();
+    // Enough for a real working set; a damaged session file can never flood the tab strip.
+    private const int MaximumImportedTabs = 50;
     private static readonly DateTimeOffset ChromiumEpoch =
         new(1601, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -121,6 +121,10 @@ internal static partial class ChromiumImportService
             if (browser == ChromiumBrowserKind.Firefox)
             {
                 ReadFirefoxPlaces(Path.Combine(profileFolder, "places.sqlite"), options, bookmarks, history, cancellationToken);
+                if (options.OpenTabs)
+                {
+                    ReadFirefoxOpenTabs(profileFolder, tabs);
+                }
                 continue;
             }
 
@@ -167,7 +171,7 @@ internal static partial class ChromiumImportService
         return new ChromiumImportResult(
             bookmarkCount,
             historyCount,
-            tabs.Take(100).ToList(),
+            tabs.Take(MaximumImportedTabs).ToList(),
             extensions,
             searchImported,
             homeImported,
@@ -419,45 +423,56 @@ internal static partial class ChromiumImportService
     private static DateTimeOffset FromFirefoxTime(long microseconds) =>
         DateTimeOffset.FromUnixTimeMilliseconds(Math.Clamp(microseconds / 1000, 0, 253402300799999));
 
+    // Only the newest "Session_*" file is the current session. "Tabs_*" files hold recently
+    // closed tabs, and every file also lists each tab's back/forward pages; reading all URLs in
+    // them is what used to open dozens of old pages as tabs.
     private static void ReadOpenTabs(string profileFolder, HashSet<string> destination)
     {
         string sessionsFolder = Path.Combine(profileFolder, "Sessions");
-        if (!Directory.Exists(sessionsFolder))
+        string? sessionFile = Directory.Exists(sessionsFolder)
+            ? Directory.EnumerateFiles(sessionsFolder, "Session_*")
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault()
+            : null;
+        sessionFile ??= Path.Combine(profileFolder, "Current Session"); // before Chromium 100
+        if (File.Exists(sessionFile))
         {
-            return;
+            AddWebTabs(() => BrowserSessionReader.ReadChromiumSession(ReadSharedBytes(sessionFile)), destination);
         }
+    }
 
-        IEnumerable<string> sessionFiles = Directory.EnumerateFiles(sessionsFolder)
-            .Where(path =>
+    private static void ReadFirefoxOpenTabs(string profileFolder, HashSet<string> destination)
+    {
+        // recovery.jsonlz4 is written while Firefox runs; sessionstore.jsonlz4 when it closes.
+        string? sessionFile = new[]
             {
-                string name = Path.GetFileName(path);
-                return name.StartsWith("Tabs_", StringComparison.OrdinalIgnoreCase) ||
-                    name.StartsWith("Session_", StringComparison.OrdinalIgnoreCase);
-            })
+                Path.Combine(profileFolder, "sessionstore-backups", "recovery.jsonlz4"),
+                Path.Combine(profileFolder, "sessionstore.jsonlz4")
+            }
+            .Where(File.Exists)
             .OrderByDescending(File.GetLastWriteTimeUtc)
-            .Take(8);
-
-        foreach (string sessionFile in sessionFiles)
+            .FirstOrDefault();
+        if (sessionFile is not null)
         {
-            try
+            AddWebTabs(() => BrowserSessionReader.ReadFirefoxSession(ReadSharedBytes(sessionFile)), destination);
+        }
+    }
+
+    private static void AddWebTabs(Func<List<string>> read, HashSet<string> destination)
+    {
+        try
+        {
+            foreach (string address in read())
             {
-                byte[] bytes = ReadSharedBytes(sessionFile);
-                string text = Encoding.UTF8.GetString(bytes);
-                foreach (Match match in SessionUrlRegex.Matches(text))
+                if (Uri.TryCreate(address, UriKind.Absolute, out Uri? uri) && uri.Scheme is "http" or "https")
                 {
-                    string candidate = match.Value.TrimEnd(
-                        '.', ',', ';', ':', ')', ']', '}', '"', '\'', '\\');
-                    if (Uri.TryCreate(candidate, UriKind.Absolute, out Uri? uri) &&
-                        uri.Scheme is "http" or "https")
-                    {
-                        destination.Add(uri.AbsoluteUri);
-                    }
+                    destination.Add(uri.AbsoluteUri);
                 }
             }
-            catch
-            {
-                // Session extraction is best-effort because Chromium's format is private.
-            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        {
+            // Session formats are private to each browser; bookmarks and history still import.
         }
     }
 
@@ -654,7 +669,4 @@ internal static partial class ChromiumImportService
             // Temporary files are harmless if Windows still has a short-lived handle.
         }
     }
-
-    [GeneratedRegex(@"https?://[^\x00-\x20<>""']{4,2048}", RegexOptions.IgnoreCase)]
-    private static partial Regex SessionUrlPattern();
 }

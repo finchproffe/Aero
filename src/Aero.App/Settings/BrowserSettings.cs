@@ -332,6 +332,9 @@ public sealed class BrowserSettings
 
     public bool ShowQuickLinks { get; set; } = true;
 
+    /// <summary>Aero Home shows today's pages, recent pages, bookmarks and workspaces.</summary>
+    public bool ShowHomeActivity { get; set; } = true;
+
     public bool RestorePreviousSession { get; set; } = true;
 
     public bool BlockAdsAndTrackers { get; set; } = true;

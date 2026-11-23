@@ -22,7 +22,8 @@
 
 - **Instant and quiet.** No news feed, ads, account requirement or telemetry. Background tabs sleep, resource use is visible per tab, and sessions restore lazily.
 - **You stay in control.** Per-site permissions, built-in Shield blocker, workspaces, tab groups, split view, containers and private windows.
-- **Moving in is easy.** Import from Chrome, Edge, Yandex Browser, Brave, Vivaldi, Opera and Firefox; DRM video (Widevine, PlayReady), passkeys and one-click page translation work out of the box.
+- **Moving in is easy.** Import from Chrome, Edge, Yandex Browser, Brave, Vivaldi, Opera and Firefox. Only the tabs that are open in the other browser come over (the current page of each, at most 50), not its history. DRM video (Widevine, PlayReady), passkeys and one-click page translation work out of the box.
+- **A home page that is yours.** A large clock over a sky that follows the time of day, quick links, the sites you were on with their icons, bookmarks, workspaces and what Aero blocked in this window. Hidden in private and guest windows.
 - **Free sync, no account.** Bookmarks and passwords travel between your PCs through a cloud folder you already have. See [Sync without a server](#sync-without-a-server).
 - **Built against session theft.** Most account takeovers today don't need your password: a stealer copies the browser's cookies and replays your sessions. Aero is designed so that the usual way of doing that stops working.
 

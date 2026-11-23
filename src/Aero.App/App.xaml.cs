@@ -8,6 +8,9 @@ public partial class App : Application
 {
     private const string MainInstanceKey = "Aero.Browser.Main";
 
+    /// <summary>Whether the process guard applied at startup (shown on Aero Home).</summary>
+    internal static bool ProcessGuarded { get; private set; }
+
     private readonly SemaphoreSlim _activationGate = new(1, 1);
     private Window? _window;
     private AppInstance? _mainInstance;
@@ -15,7 +18,7 @@ public partial class App : Application
     public App()
     {
         // Before any WebView2, vault or broker state exists in this process.
-        Aero.App.Security.ProcessAccessGuard.HardenCurrentProcess();
+        ProcessGuarded = Aero.App.Security.ProcessAccessGuard.HardenCurrentProcess();
         // Logged only: WinUI still decides whether the process survives.
         UnhandledException += (_, args) => AppHealth.RecordCrash(args.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, args) => AppHealth.RecordCrash(args.ExceptionObject as Exception);
